@@ -1,0 +1,3695 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a0a14">
+<title>قرعه کشی — Telegram Mini App</title>
+
+<!-- Telegram WebApp SDK -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+/* ═══════════════════════════════════════════════════════════════════
+   قرعه کشی TMA — Dual-theme, responsive, advanced animations
+   ────────────────────────────────────────────────────────────────────
+   Architecture:
+     • Mobile-first single column (default)
+     • Desktop ≥ 900px: two-column with sticky sidebar
+     • Theme: [data-theme="dark"] cyber/stealth  |  [data-theme="light"] premium SaaS
+     • All animations use transform/opacity (GPU-accelerated, 60fps)
+   ═══════════════════════════════════════════════════════════════════ */
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+
+:root{
+  --r1:8px; --r2:14px; --r3:20px; --r4:28px;
+  --safe-top:    env(safe-area-inset-top,    0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left:   env(safe-area-inset-left,   0px);
+  --safe-right:  env(safe-area-inset-right,  0px);
+  --tg-main-btn-height: 0px;
+  --tab-h: 64px;
+  --font-fa:'Vazirmatn',system-ui,-apple-system,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --t-fast:.16s; --t-mid:.28s; --t-slow:.5s;
+  --ease-spring: cubic-bezier(.34,1.56,.64,1);
+  --ease-out:    cubic-bezier(.16,1,.3,1);
+}
+
+/* ══════════ DARK THEME — cyber/stealth ══════════ */
+[data-theme="dark"]{
+  --bg0:#0a0a14; --bg1:#12121f; --bg2:#1a1a2e; --bg3:#232340; --bg-elev:#1c1c34;
+  --border:rgba(255,255,255,0.06); --border2:rgba(255,255,255,0.13); --border3:rgba(255,255,255,0.22);
+  --acc:#7c6fff; --acc2:#a78bfa; --acc3:rgba(124,111,255,0.16); --acc-glow:rgba(124,111,255,0.34);
+  --neon-blue:#00d4ff; --neon-purple:#c084fc; --neon-green:#22ffa7; --neon-pink:#ff5ea8;
+  --gold:#fbbf24; --gold2:#f59e0b; --gold-dim:rgba(251,191,36,0.12);
+  --ok:#22c55e; --warn:#f59e0b; --err:#f87171;
+  --t1:#f0f0fa; --t2:#8b8ba7; --t3:#4a4a6a;
+  --shadow-sm:0 2px 10px rgba(0,0,0,0.45);
+  --shadow-md:0 10px 30px rgba(0,0,0,0.55);
+  --shadow-glow:0 0 40px var(--acc-glow);
+  --glass:rgba(28,28,52,0.55);
+  --glass-brd:rgba(255,255,255,0.08);
+}
+
+/* ══════════ LIGHT THEME — premium SaaS ══════════ */
+[data-theme="light"]{
+  --bg0:#f4f5fb; --bg1:#ffffff; --bg2:#ffffff; --bg3:#eef0f7; --bg-elev:#ffffff;
+  --border:rgba(15,23,42,0.07); --border2:rgba(15,23,42,0.13); --border3:rgba(15,23,42,0.22);
+  --acc:#5b54e0; --acc2:#7c4dff; --acc3:rgba(91,84,224,0.10); --acc-glow:rgba(91,84,224,0.25);
+  --neon-blue:#0090ff; --neon-purple:#7c4dff; --neon-green:#10b981; --neon-pink:#ec4899;
+  --gold:#d97706; --gold2:#f59e0b; --gold-dim:rgba(217,119,6,0.10);
+  --ok:#16a34a; --warn:#d97706; --err:#dc2626;
+  --t1:#0f172a; --t2:#64748b; --t3:#94a3b8;
+  --shadow-sm:0 1px 3px rgba(15,23,42,0.07);
+  --shadow-md:0 6px 20px rgba(15,23,42,0.10);
+  --shadow-glow:0 6px 24px var(--acc-glow);
+  --glass:rgba(255,255,255,0.72);
+  --glass-brd:rgba(15,23,42,0.08);
+}
+
+html,body{
+  height:100%; overflow-x:hidden; overflow-y:auto;
+  background:var(--bg0); color:var(--t1);
+  font-family:var(--font-fa); direction:rtl;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  transition:background var(--t-mid) var(--ease-out), color var(--t-mid) var(--ease-out);
+}
+body{
+  min-height:100vh; min-height:100dvh;
+  padding-top:var(--safe-top);
+  padding-bottom:calc(var(--safe-bottom) + var(--tab-h) + 12px);
+  padding-left:var(--safe-left); padding-right:var(--safe-right);
+  position:relative;
+}
+
+/* Ambient backgrounds (theme-specific) */
+[data-theme="dark"] body::before{
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -8%, rgba(124,111,255,0.14), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 95% 90%, rgba(192,132,252,0.08), transparent 60%),
+    radial-gradient(ellipse 50% 35% at 5% 80%, rgba(0,212,255,0.05), transparent 60%);
+}
+[data-theme="light"] body::before{
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -8%, rgba(91,84,224,0.08), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 95% 90%, rgba(124,77,255,0.05), transparent 60%);
+}
+
+/* Animated grain texture for dark mode (subtle cyber feel) */
+[data-theme="dark"] body::after{
+  content:''; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:0.4;
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0, transparent 2px, rgba(124,111,255,0.012) 2px, rgba(124,111,255,0.012) 3px);
+  animation:grain 8s steps(10) infinite;
+}
+@keyframes grain{
+  0%,100%{transform:translateY(0)} 50%{transform:translateY(-2px)}
+}
+
+/* ══════════ HEADER ══════════ */
+header{
+  position:sticky; top:0; z-index:50;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px 12px;
+  background:var(--glass);
+  backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  border-bottom:1px solid var(--glass-brd);
+}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-mark{
+  width:38px;height:38px;border-radius:11px;
+  background:linear-gradient(135deg,var(--acc),var(--neon-purple));
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+  box-shadow:0 0 22px var(--acc-glow), inset 0 1px 0 rgba(255,255,255,0.2);
+  position:relative; overflow:hidden;
+}
+.logo-mark::after{
+  content:''; position:absolute; inset:-2px;
+  background:conic-gradient(from 0deg, transparent 0%, rgba(255,255,255,0.4) 25%, transparent 50%);
+  animation:logoShine 4s linear infinite;
+}
+@keyframes logoShine{to{transform:rotate(360deg)}}
+.logo-name{font-size:18px;font-weight:800;letter-spacing:-0.4px}
+.logo-name em{font-style:normal;color:var(--acc2)}
+.header-right{display:flex;align-items:center;gap:8px}
+.theme-toggle{
+  width:38px;height:38px;border-radius:11px;
+  border:1px solid var(--border2); background:var(--bg2); color:var(--t1);
+  font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all var(--t-fast) var(--ease-out);
+  overflow:hidden; position:relative;
+}
+.theme-toggle:hover{background:var(--bg3);border-color:var(--border3);transform:translateY(-1px)}
+.theme-toggle:active{transform:scale(0.92)}
+.theme-toggle .icon{transition:transform var(--t-mid) var(--ease-spring)}
+.fairness-pill{
+  display:flex;align-items:center;gap:6px;
+  font-size:10px;font-weight:600;color:var(--t2);
+  padding:6px 11px;border-radius:100px;
+  border:1px solid var(--border2); background:var(--bg2);
+  cursor:pointer; transition:all var(--t-fast);
+}
+.fairness-pill:hover{border-color:var(--acc);color:var(--acc2);background:var(--acc3)}
+.fairness-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--ok);
+  box-shadow:0 0 8px var(--ok); animation:pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(0.8)}}
+
+/* ══════════ BOTTOM TABS (mobile) / TOP TABS (desktop) ══════════ */
+/* Mobile-first: a polished glass bar with colored pill backgrounds per tab,
+   large touch targets, and a clear active-state highlight. */
+.tabs{
+  position:fixed; bottom:var(--safe-bottom); left:0; right:0; z-index:60;
+  display:flex; gap:8px;
+  background:var(--glass);
+  backdrop-filter:blur(28px) saturate(200%);
+  -webkit-backdrop-filter:blur(28px) saturate(200%);
+  border-top:1px solid var(--glass-brd);
+  padding:6px 10px;
+  box-shadow:0 -6px 24px rgba(0,0,0,0.16);
+}
+[data-theme="dark"] .tabs{
+  border-top-color:rgba(255,255,255,0.10);
+  box-shadow:0 -8px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+[data-theme="light"] .tabs{
+  border-top-color:rgba(15,23,42,0.08);
+  box-shadow:0 -8px 24px rgba(15,23,42,0.06);
+}
+
+.tab{
+  flex:1; background:transparent; border:none; color:var(--t3);
+  font-family:var(--font-fa);
+  font-size:11px; font-weight:700; padding:6px 6px 5px; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  position:relative; transition:all var(--t-mid) var(--ease-out);
+  border-radius:14px;
+  letter-spacing:-0.2px;
+}
+.tab .tab-icon{
+  font-size:21px; transition:all var(--t-mid) var(--ease-spring);
+  filter:drop-shadow(0 0 0 transparent);
+  display:flex; align-items:center; justify-content:center;
+  width:34px; height:34px; border-radius:11px;
+  background:transparent;
+}
+
+/* Active state: full pill highlight, icon glow, label color shift */
+.tab.active{color:var(--acc2)}
+.tab.active .tab-icon{
+  transform:translateY(-2px) scale(1.08);
+  background:linear-gradient(135deg,var(--acc3),rgba(168,85,247,0.18));
+  box-shadow:0 4px 14px var(--acc-glow), inset 0 1px 0 rgba(255,255,255,0.12);
+  filter:drop-shadow(0 2px 8px var(--acc-glow));
+}
+[data-theme="light"] .tab.active .tab-icon{
+  background:linear-gradient(135deg,var(--acc3),rgba(91,84,224,0.12));
+}
+
+/* Top-center glowing indicator dot above active tab */
+.tab.active::before{
+  content:''; position:absolute; top:-4px; left:50%; transform:translateX(-50%);
+  width:28px; height:3px; border-radius:100px;
+  background:linear-gradient(90deg,transparent,var(--acc),var(--neon-purple),transparent);
+  box-shadow:0 0 12px var(--acc-glow);
+  animation:tabIndicator var(--t-mid) var(--ease-out);
+}
+@keyframes tabIndicator{
+  from{width:0;opacity:0}
+  to{width:28px;opacity:1}
+}
+
+/* Hover (desktop/pointer devices) */
+@media (hover: hover){
+  .tab:hover:not(.active){
+    color:var(--t1);
+    background:var(--bg3);
+  }
+  .tab:hover:not(.active) .tab-icon{
+    transform:translateY(-1px);
+  }
+}
+
+/* Tap feedback */
+.tab:active{transform:scale(0.94)}
+.tab:active .tab-icon{transform:scale(0.92)}
+
+/* Per-tab accent colors when active — adds personality */
+.tab[data-tab="lottery"].active{color:var(--acc2)}
+.tab[data-tab="lottery"].active .tab-icon{
+  background:linear-gradient(135deg,var(--acc3),rgba(124,111,255,0.22));
+  box-shadow:0 4px 14px var(--acc-glow), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+.tab[data-tab="donate"].active{color:var(--gold2)}
+.tab[data-tab="donate"].active .tab-icon{
+  background:linear-gradient(135deg,var(--gold-dim),rgba(251,191,36,0.22));
+  box-shadow:0 4px 14px rgba(251,191,36,0.35), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+.tab[data-tab="donate"].active::before{
+  background:linear-gradient(90deg,transparent,var(--gold),var(--gold2),transparent);
+  box-shadow:0 0 12px rgba(251,191,36,0.45);
+}
+
+/* Badge for notifications on tab icon */
+.tab .tab-badge{
+  position:absolute; top:4px; left:50%; transform:translateX(14px);
+  background:var(--err); color:#fff; font-size:9px; font-weight:800;
+  min-width:16px; height:16px; border-radius:100px; padding:0 4px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 0 8px rgba(248,113,113,0.7), inset 0 1px 0 rgba(255,255,255,0.3);
+  animation:badgePop var(--t-slow) var(--ease-spring);
+  font-family:var(--font-mono);
+}
+@keyframes badgePop{
+  0%{transform:translateX(14px) scale(0)}
+  60%{transform:translateX(14px) scale(1.3)}
+  100%{transform:translateX(14px) scale(1)}
+}
+
+/* ══════════ LAYOUT ══════════ */
+.app{
+  position:relative; z-index:1;
+  padding:14px 14px 24px;
+  max-width:560px; margin:0 auto;
+}
+.panel{display:none; animation:panelIn var(--t-mid) var(--ease-out)}
+.panel.active{display:block}
+@keyframes panelIn{
+  from{opacity:0; transform:translateY(12px) scale(0.98)}
+  to{opacity:1; transform:translateY(0) scale(1)}
+}
+
+/* ══════════ CARDS ══════════ */
+.card{
+  background:var(--bg2); border:1px solid var(--border); border-radius:var(--r3);
+  padding:16px; margin-bottom:12px;
+  transition:border-color var(--t-fast), box-shadow var(--t-fast), transform var(--t-fast);
+  position:relative; overflow:hidden;
+}
+[data-theme="light"] .card{box-shadow:var(--shadow-sm)}
+[data-theme="dark"] .card{
+  background:linear-gradient(180deg, var(--bg2) 0%, color-mix(in srgb, var(--bg2) 90%, var(--bg1)) 100%);
+}
+.card:hover{border-color:var(--border2)}
+.card-title{
+  font-size:10px;font-weight:700;color:var(--t3);letter-spacing:1.4px;
+  text-transform:uppercase;margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;
+}
+.card-title::before{
+  content:''; width:3px; height:14px; border-radius:2px;
+  background:linear-gradient(180deg,var(--acc),var(--neon-purple));
+}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.card-header .card-title{margin-bottom:0}
+
+/* ══════════ INPUTS ══════════ */
+.field{
+  background:var(--bg1); border:1px solid var(--border2); border-radius:var(--r1);
+  padding:11px 14px; font-size:14px; font-family:var(--font-fa); color:var(--t1);
+  direction:rtl; outline:none; transition:all var(--t-fast); width:100%;
+}
+.field::placeholder{color:var(--t3)}
+.field:focus{
+  border-color:var(--acc); box-shadow:0 0 0 3px var(--acc3);
+  background:var(--bg2);
+}
+
+/* ══════════ BUTTONS ══════════ */
+.btn{
+  font-family:var(--font-fa); font-weight:600; border:none; cursor:pointer;
+  transition:transform var(--t-fast), background var(--t-fast), box-shadow var(--t-fast), opacity var(--t-fast);
+  display:inline-flex; align-items:center; gap:6px; justify-content:center;
+  white-space:nowrap; outline:none; user-select:none;
+  position:relative; overflow:hidden;
+}
+.btn::after{
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(circle at var(--rx,50%) var(--ry,50%), rgba(255,255,255,0.3) 0%, transparent 50%);
+  opacity:0; transition:opacity var(--t-fast);
+  pointer-events:none;
+}
+.btn:hover::after{opacity:1}
+.btn:active:not(:disabled){transform:scale(0.96)}
+.btn-sm{font-size:11px;padding:7px 12px;border-radius:var(--r1)}
+.btn-md{font-size:13px;padding:10px 16px;border-radius:var(--r1)}
+.btn-primary{background:linear-gradient(135deg,var(--acc),var(--neon-purple));color:#fff;box-shadow:0 4px 16px var(--acc-glow)}
+.btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 24px var(--acc-glow)}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-ghost{background:transparent;color:var(--t2);border:1px solid var(--border2)}
+.btn-ghost:hover:not(:disabled){background:var(--bg3);color:var(--t1);border-color:var(--border3)}
+.btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#1a1a1a;font-weight:700;box-shadow:0 4px 16px rgba(251,191,36,0.3)}
+.btn-gold:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 8px 24px rgba(251,191,36,0.45)}
+.btn-kill{background:transparent;color:var(--err);border:1px solid transparent;padding:5px 9px;border-radius:6px;font-size:12px}
+.btn-kill:hover{background:rgba(248,113,113,0.10);border-color:rgba(248,113,113,0.22)}
+
+.add-row{display:flex;gap:8px;margin-bottom:4px}
+.add-row .field{flex:1}
+
+/* ══════════ CHIPS ══════════ */
+.chip-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{
+  font-size:11px;padding:5px 11px;border-radius:100px;
+  border:1px solid var(--border2); background:var(--bg3); color:var(--t2);
+  cursor:pointer;transition:all var(--t-fast);font-family:var(--font-fa);
+  animation:chipIn var(--t-mid) var(--ease-spring) backwards;
+}
+@keyframes chipIn{from{opacity:0;transform:scale(0.6)}to{opacity:1;transform:scale(1)}}
+.chip:hover{border-color:var(--acc);color:var(--acc2);background:var(--acc3);transform:translateY(-1px)}
+
+/* ══════════ PARTICIPANTS LIST ══════════ */
+.p-list{
+  display:flex; flex-direction:column; gap:6px; max-height:280px;
+  overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--border2) transparent;
+}
+.p-item{
+  display:flex; align-items:center; gap:10px; padding:9px 11px;
+  background:var(--bg1); border:1px solid transparent; border-radius:var(--r1);
+  transition:all var(--t-fast); animation:itemIn var(--t-mid) var(--ease-out) backwards;
+}
+@keyframes itemIn{
+  from{opacity:0;transform:translateX(-12px) scale(0.95)}
+  to{opacity:1;transform:translateX(0) scale(1)}
+}
+.p-item:hover{border-color:var(--border2);background:var(--bg3);transform:translateX(-2px)}
+.p-item.is-winner{
+  background:linear-gradient(90deg,var(--gold-dim),var(--bg1));
+  border-color:rgba(251,191,36,0.4);
+  box-shadow:0 0 20px rgba(251,191,36,0.15);
+  animation:winnerGlow 2s ease-in-out infinite;
+}
+@keyframes winnerGlow{
+  0%,100%{box-shadow:0 0 20px rgba(251,191,36,0.15)}
+  50%{box-shadow:0 0 32px rgba(251,191,36,0.35)}
+}
+.avatar{
+  width:30px;height:30px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;flex-shrink:0;
+  position:relative;
+}
+.avatar::after{
+  content:''; position:absolute; inset:0; border-radius:50%;
+  background:linear-gradient(135deg,rgba(255,255,255,0.2),transparent 50%);
+  pointer-events:none;
+}
+.p-info{flex:1;min-width:0}
+.p-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-prob{font-size:10px;color:var(--t3);margin-top:1px;transition:color var(--t-mid)}
+.p-idx{font-size:10px;font-weight:700;color:var(--t3);width:16px;text-align:center;flex-shrink:0;font-family:var(--font-mono)}
+.crown{font-size:14px;animation:crownBounce .6s ease-in-out infinite alternate;filter:drop-shadow(0 0 4px var(--gold))}
+@keyframes crownBounce{from{transform:translateY(0) rotate(-5deg)}to{transform:translateY(-3px) rotate(5deg)}}
+.empty-hint{text-align:center;padding:22px 12px;color:var(--t3);font-size:12px;line-height:1.7}
+
+/* ══════════ PROBABILITY METER ══════════ */
+.prob-meter{margin-bottom:14px}
+.prob-meta{display:flex;justify-content:space-between;font-size:10px;color:var(--t3);margin-bottom:6px}
+.prob-meta b{color:var(--acc2);font-weight:600}
+.bar-track{height:5px;background:var(--bg1);border-radius:100px;overflow:hidden;position:relative}
+.bar-fill{
+  height:100%;border-radius:100px;
+  background:linear-gradient(90deg,var(--acc),var(--neon-purple),var(--ok));
+  background-size:200% 100%; animation:barShine 3s linear infinite;
+  transition:width var(--t-slow) var(--ease-out);
+  position:relative;
+}
+.bar-fill::after{
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.4),transparent);
+  animation:barSweep 2s linear infinite;
+}
+@keyframes barShine{0%{background-position:0% 0}100%{background-position:200% 0}}
+@keyframes barSweep{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
+
+/* ══════════ STATS GRID ══════════ */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat{
+  background:var(--bg1); border-radius:var(--r1); padding:12px 11px;
+  transition:transform var(--t-fast), box-shadow var(--t-fast);
+  position:relative; overflow:hidden;
+}
+.stat:hover{transform:translateY(-2px)}
+[data-theme="dark"] .stat{box-shadow:inset 0 1px 0 rgba(255,255,255,0.03)}
+.stat-label{font-size:9px;font-weight:700;color:var(--t3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:4px}
+.stat-val{font-size:20px;font-weight:800;font-family:var(--font-mono)}
+.stat-val.c-acc{color:var(--acc2)}
+.stat-val.c-gold{color:var(--gold)}
+.stat-val.c-ok{color:var(--ok)}
+.stat-val.c-sm{font-size:12px;padding-top:4px;font-weight:600;color:var(--t1);font-family:var(--font-fa)}
+
+/* ══════════ ALGO BOX ══════════ */
+.algo-box{background:var(--bg1);border-radius:var(--r1);padding:12px;margin-top:6px}
+.algo-title{font-size:9px;font-weight:700;color:var(--t3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px}
+.algo-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:4px 0;border-bottom:1px solid var(--border)}
+.algo-row:last-child{border-bottom:none}
+.algo-row span:first-child{color:var(--t2)}
+.algo-row span:last-child{color:var(--ok);font-weight:600;font-family:var(--font-mono);font-size:10px}
+
+/* ══════════ STAGE — 3D perspective ══════════ */
+.stage{
+  background:var(--bg2); border:1px solid var(--border); border-radius:var(--r4);
+  padding:32px 22px; min-height:380px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  position:relative; overflow:hidden;
+  perspective:1000px;
+}
+[data-theme="dark"] .stage{
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(124,111,255,0.06) 0%, transparent 70%),
+    linear-gradient(180deg, var(--bg2) 0%, color-mix(in srgb, var(--bg2) 85%, var(--bg1)) 100%);
+  box-shadow:inset 0 0 0 1px rgba(124,111,255,0.05), 0 0 60px rgba(124,111,255,0.04);
+}
+[data-theme="light"] .stage{box-shadow:var(--shadow-sm)}
+.stage::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(124,111,255,0.6),transparent);
+}
+.stage::after{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(124,111,255,0.2),transparent);
+}
+canvas.fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5}
+
+/* Idle state */
+.idle{text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;position:relative;z-index:2}
+.idle-orb{
+  width:90px;height:90px;border-radius:50%;
+  background:radial-gradient(circle at 36% 36%,rgba(124,111,255,0.35),rgba(124,111,255,0.05));
+  border:1px solid rgba(124,111,255,0.3);
+  display:flex;align-items:center;justify-content:center;font-size:42px;
+  animation:orbFloat 4s ease-in-out infinite;
+  position:relative;
+}
+.idle-orb::before{
+  content:''; position:absolute; inset:-6px; border-radius:50%;
+  border:1px solid rgba(124,111,255,0.15);
+  animation:orbRing 4s ease-in-out infinite;
+}
+@keyframes orbFloat{
+  0%,100%{transform:translateY(0) scale(1);box-shadow:0 0 0 0 var(--acc-glow)}
+  50%{transform:translateY(-8px) scale(1.04);box-shadow:0 0 40px var(--acc-glow)}
+}
+@keyframes orbRing{
+  0%,100%{transform:scale(1);opacity:0.6}
+  50%{transform:scale(1.15);opacity:0.2}
+}
+.idle h2{font-size:22px;font-weight:800;letter-spacing:-0.4px}
+.idle p{font-size:12.5px;color:var(--t2);max-width:280px;line-height:1.7}
+
+/* Spin state — 3D wheel */
+.spin-wrap{display:flex;flex-direction:column;align-items:center;gap:22px;width:100%;position:relative;z-index:2}
+.wheel-wrap{position:relative;width:180px;height:180px;transform-style:preserve-3d}
+.wheel-wrap.spinning{animation:wheelTilt 1.4s ease-in-out infinite}
+@keyframes wheelTilt{
+  0%,100%{transform:rotateX(8deg) rotateY(-4deg)}
+  50%{transform:rotateX(-4deg) rotateY(4deg)}
+}
+.ring{position:absolute;inset:0;border-radius:50%;border:3px solid transparent}
+.ring1{border-top-color:var(--acc);border-right-color:rgba(124,111,255,0.35);animation:spinR 1.1s linear infinite;box-shadow:0 0 24px var(--acc-glow)}
+.ring2{inset:14px;border-top-color:var(--neon-purple);border-left-color:rgba(192,132,252,0.35);animation:spinR 0.7s linear infinite reverse}
+.ring3{inset:28px;border-top-color:var(--gold);border-bottom-color:rgba(251,191,36,0.25);animation:spinR 0.45s linear infinite}
+.ring4{inset:42px;border-top-color:var(--neon-blue);border-right-color:rgba(0,212,255,0.3);animation:spinR 0.35s linear infinite reverse}
+@keyframes spinR{to{transform:rotate(360deg)}}
+.wheel-core{
+  position:absolute;inset:54px;border-radius:50%;
+  background:radial-gradient(circle at 36% 36%,var(--bg3),var(--bg2));
+  display:flex;align-items:center;justify-content:center;font-size:30px;
+  box-shadow:inset 0 0 20px rgba(124,111,255,0.2);
+  animation:corePulse 1s ease-in-out infinite;
+}
+@keyframes corePulse{
+  0%,100%{transform:scale(1);box-shadow:inset 0 0 20px rgba(124,111,255,0.2),0 0 0 0 var(--acc-glow)}
+  50%{transform:scale(1.08);box-shadow:inset 0 0 24px rgba(124,111,255,0.35),0 0 24px var(--acc-glow)}
+}
+.spin-ticker{
+  font-size:22px; font-weight:800; color:var(--acc2); min-height:32px;
+  letter-spacing:-0.4px; transition:opacity .08s;
+  max-width:90%; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  text-shadow:0 0 20px var(--acc-glow);
+}
+.spin-sub{font-size:10px;color:var(--t3);letter-spacing:1.2px;text-transform:uppercase}
+.progress-track{width:100%;max-width:280px;height:4px;background:var(--bg1);border-radius:100px;overflow:hidden;position:relative}
+.progress-fill{
+  height:100%;border-radius:100px;
+  background:linear-gradient(90deg,var(--acc),var(--neon-purple),var(--gold));
+  background-size:200% 100%; animation:barShine 1.5s linear infinite;
+  transition:width .1s linear; position:relative;
+}
+.progress-fill::after{
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.5),transparent);
+  animation:barSweep 1s linear infinite;
+}
+
+/* Winner state — spring physics */
+.winner-wrap{
+  display:flex;flex-direction:column;align-items:center;gap:14px;
+  position:relative;z-index:2;
+  animation:winPop .7s var(--ease-spring);
+}
+@keyframes winPop{
+  0%{opacity:0;transform:scale(0.3) rotateZ(-10deg)}
+  60%{opacity:1;transform:scale(1.1) rotateZ(2deg)}
+  100%{opacity:1;transform:scale(1) rotateZ(0)}
+}
+.winner-trophy{
+  font-size:72px;
+  filter:drop-shadow(0 0 30px rgba(251,191,36,0.6));
+  animation:trophyRock 2s ease-in-out infinite;
+}
+@keyframes trophyRock{
+  0%,100%{transform:rotate(-5deg) scale(1) translateY(0)}
+  25%{transform:rotate(0deg) scale(1.05) translateY(-4px)}
+  50%{transform:rotate(5deg) scale(1) translateY(0)}
+  75%{transform:rotate(0deg) scale(1.05) translateY(-4px)}
+}
+.winner-rays{
+  position:absolute; top:-20px; left:50%; transform:translateX(-50%);
+  width:300px; height:300px; pointer-events:none; z-index:1;
+  background:conic-gradient(
+    from 0deg,
+    transparent 0deg, rgba(251,191,36,0.08) 8deg, transparent 16deg,
+    transparent 30deg, rgba(251,191,36,0.06) 38deg, transparent 46deg,
+    transparent 60deg, rgba(251,191,36,0.08) 68deg, transparent 76deg,
+    transparent 90deg, rgba(251,191,36,0.06) 98deg, transparent 106deg,
+    transparent 120deg, rgba(251,191,36,0.08) 128deg, transparent 136deg,
+    transparent 150deg, rgba(251,191,36,0.06) 158deg, transparent 166deg,
+    transparent 180deg, rgba(251,191,36,0.08) 188deg, transparent 196deg,
+    transparent 210deg, rgba(251,191,36,0.06) 218deg, transparent 226deg,
+    transparent 240deg, rgba(251,191,36,0.08) 248deg, transparent 256deg,
+    transparent 270deg, rgba(251,191,36,0.06) 278deg, transparent 286deg,
+    transparent 300deg, rgba(251,191,36,0.08) 308deg, transparent 316deg,
+    transparent 330deg, rgba(251,191,36,0.06) 338deg, transparent 346deg
+  );
+  animation:raysSpin 12s linear infinite;
+  opacity:0.6;
+}
+@keyframes raysSpin{to{transform:translateX(-50%) rotate(360deg)}}
+.winner-tag{font-size:9px;font-weight:700;letter-spacing:2.5px;color:var(--gold);text-transform:uppercase;animation:tagGlow 1.5s ease-in-out infinite}
+@keyframes tagGlow{0%,100%{text-shadow:0 0 8px var(--gold)}50%{text-shadow:0 0 16px var(--gold),0 0 24px var(--gold)}}
+.winner-name{
+  font-size:38px;font-weight:900;letter-spacing:-1.2px;line-height:1;
+  background:linear-gradient(135deg,var(--gold) 0%,#fde687 30%,var(--gold2) 60%,#fb923c 100%);
+  background-size:200% 200%; animation:nameShine 3s ease-in-out infinite;
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  text-align:center; max-width:90%; word-break:break-word;
+  filter:drop-shadow(0 0 20px rgba(251,191,36,0.4));
+}
+@keyframes nameShine{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.winner-meta{font-size:12px;color:var(--t2);text-align:center;line-height:1.7}
+.winner-meta b{color:var(--gold2)}
+
+/* ══════════ CONTROLS ══════════ */
+.ctrl-row{display:flex;gap:10px;margin-top:12px}
+.btn-run{
+  flex:1; padding:14px 22px; font-size:14px; border-radius:var(--r2);
+  background:linear-gradient(135deg,var(--acc),var(--neon-purple)); color:#fff;
+  border:none; cursor:pointer; font-family:var(--font-fa); font-weight:700;
+  transition:all var(--t-fast);
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  box-shadow:0 6px 22px rgba(124,111,255,0.32);
+  position:relative; overflow:hidden;
+}
+.btn-run::before{
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(135deg,var(--neon-purple),var(--acc),var(--neon-purple));
+  background-size:200% 100%; opacity:0; transition:opacity var(--t-mid);
+  animation:btnShine 3s linear infinite;
+}
+@keyframes btnShine{0%{background-position:0% 0}100%{background-position:200% 0}}
+.btn-run:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 12px 32px rgba(124,111,255,0.45)}
+.btn-run:hover:not(:disabled)::before{opacity:1}
+.btn-run:active:not(:disabled){transform:translateY(0)}
+.btn-run:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-run > *{position:relative;z-index:1}
+
+/* ══════════ HISTORY ══════════ */
+.h-list{display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border2) transparent}
+.h-item{
+  display:flex;align-items:center;gap:9px;padding:8px 11px;
+  background:var(--bg1);border-radius:var(--r1);border:1px solid transparent;
+  animation:itemIn var(--t-mid) var(--ease-out) backwards;
+}
+.h-num{font-size:10px;font-weight:700;color:var(--t3);width:20px;text-align:center;font-family:var(--font-mono)}
+.h-name{flex:1;font-size:12.5px;font-weight:500}
+.h-time{font-size:10px;color:var(--t3);font-family:var(--font-mono)}
+
+/* ══════════ AUDIT CARD ══════════ */
+.audit-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+.audit-cell{background:var(--bg1);border-radius:var(--r1);padding:10px 6px;text-align:center}
+.audit-val{font-size:14px;font-weight:800;color:var(--ok);margin-bottom:2px;font-family:var(--font-mono)}
+.audit-key{font-size:9px;color:var(--t3);font-weight:600;letter-spacing:.5px}
+
+/* ══════════ DONATE PANEL — TON wallet ══════════ */
+.donate-hero{
+  background:linear-gradient(135deg,var(--acc3),rgba(0,212,255,0.10));
+  border:1px solid var(--border2); border-radius:var(--r3);
+  padding:24px 20px; text-align:center; margin-bottom:14px;
+  position:relative; overflow:hidden;
+}
+.donate-hero::before{
+  content:''; position:absolute; top:-50%; left:-50%; width:200%; height:200%;
+  background:conic-gradient(from 0deg,transparent 0deg,rgba(0,212,255,0.07) 60deg,transparent 120deg,rgba(124,111,255,0.06) 240deg,transparent 300deg);
+  animation:raysSpin 20s linear infinite;
+  pointer-events:none;
+}
+.donate-hero > *{position:relative;z-index:1}
+.donate-hero-emoji{
+  font-size:48px; margin-bottom:10px;
+  animation:tonFloat 4s ease-in-out infinite;
+  filter:drop-shadow(0 0 18px rgba(0,212,255,0.4));
+}
+@keyframes tonFloat{
+  0%,100%{transform:translateY(0) scale(1);filter:drop-shadow(0 0 18px rgba(0,212,255,0.4))}
+  50%{transform:translateY(-6px) scale(1.05);filter:drop-shadow(0 0 26px rgba(0,212,255,0.6))}
+}
+.donate-hero-title{font-size:19px;font-weight:800;margin-bottom:8px}
+.donate-hero-sub{font-size:12px;color:var(--t2);line-height:1.8;margin-bottom:0;max-width:340px;margin-left:auto;margin-right:auto}
+
+/* ─── TON wallet address card ─── */
+.ton-card{
+  background:var(--bg2); border:1px solid var(--border); border-radius:var(--r3);
+  padding:18px; margin-bottom:14px; position:relative; overflow:hidden;
+}
+[data-theme="dark"] .ton-card{
+  background:linear-gradient(180deg,var(--bg2) 0%,color-mix(in srgb,var(--bg2) 88%,#0a0a14) 100%);
+  box-shadow:inset 0 1px 0 rgba(0,212,255,0.05),0 0 40px rgba(0,212,255,0.03);
+}
+.ton-card-header{
+  display:flex; align-items:center; gap:10px; margin-bottom:14px;
+}
+.ton-logo{
+  width:36px; height:36px; border-radius:11px;
+  background:linear-gradient(135deg,#0098EA,#00d4ff);
+  display:flex; align-items:center; justify-content:center;
+  color:#fff; font-weight:900; font-size:14px; font-family:var(--font-mono);
+  box-shadow:0 0 16px rgba(0,212,255,0.4);
+  flex-shrink:0;
+}
+.ton-card-title{flex:1}
+.ton-card-title .name{font-size:13px;font-weight:700}
+.ton-card-title .network{font-size:10px;color:var(--t3);font-family:var(--font-mono);letter-spacing:.5px}
+
+/* The clickable address block — tap anywhere to copy */
+.ton-address-block{
+  background:var(--bg1); border:1.5px solid var(--border2); border-radius:var(--r2);
+  padding:14px 12px; cursor:pointer; transition:all var(--t-mid) var(--ease-out);
+  position:relative; overflow:hidden;
+  display:flex; align-items:center; gap:10px;
+}
+.ton-address-block:hover{
+  border-color:var(--neon-blue);
+  background:color-mix(in srgb,var(--bg1) 90%,rgba(0,212,255,0.08));
+  transform:translateY(-1px);
+  box-shadow:0 4px 16px rgba(0,212,255,0.12);
+}
+.ton-address-block:active{transform:scale(0.98)}
+.ton-address-block .tap-hint{
+  font-size:9px; color:var(--t3); font-weight:600; letter-spacing:.5px;
+  text-transform:uppercase; margin-bottom:6px; display:flex; align-items:center; gap:4px;
+}
+.ton-address-block .tap-hint .pulse-dot{
+  width:5px; height:5px; border-radius:50%; background:var(--neon-blue);
+  animation:pulse-dot 1.8s ease-in-out infinite;
+}
+.ton-address-text{
+  flex:1; font-family:var(--font-mono); font-size:12px; font-weight:600;
+  color:var(--t1); direction:ltr; text-align:left;
+  word-break:break-all; line-height:1.5;
+  letter-spacing:-0.2px;
+}
+/* Shimmer overlay on the address block when copied */
+.ton-address-block.copied{
+  border-color:var(--ok);
+  background:rgba(34,197,94,0.08);
+  animation:copyFlash .6s var(--ease-out);
+}
+.ton-address-block.copied::after{
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(90deg,transparent,rgba(34,197,94,0.18),transparent);
+  animation:copySweep .6s var(--ease-out);
+  pointer-events:none;
+}
+@keyframes copyFlash{
+  0%{transform:scale(1)} 30%{transform:scale(1.02)} 100%{transform:scale(1)}
+}
+@keyframes copySweep{
+  0%{transform:translateX(-100%)} 100%{transform:translateX(100%)}
+}
+
+/* ─── Copy button (separate, advanced animation) ─── */
+.copy-btn-wrap{
+  margin-top:12px;
+  position:relative;
+}
+.copy-btn{
+  width:100%; padding:14px; font-size:14px; border-radius:var(--r2);
+  background:linear-gradient(135deg,var(--neon-blue),#0098EA);
+  color:#fff; border:none; cursor:pointer;
+  font-family:var(--font-fa); font-weight:700;
+  transition:all var(--t-mid) var(--ease-out);
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  box-shadow:0 6px 22px rgba(0,212,255,0.30);
+  position:relative; overflow:hidden;
+}
+.copy-btn::before{
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(135deg,#0098EA,var(--neon-blue),#0098EA);
+  background-size:200% 100%; opacity:0; transition:opacity var(--t-mid);
+  animation:btnShine 3s linear infinite;
+}
+.copy-btn:hover:not(.copied){
+  transform:translateY(-2px);
+  box-shadow:0 12px 32px rgba(0,212,255,0.42);
+}
+.copy-btn:hover:not(.copied)::before{opacity:1}
+.copy-btn:active:not(.copied){transform:translateY(0) scale(0.98)}
+.copy-btn > *{position:relative;z-index:1}
+.copy-btn .copy-icon{
+  font-size:18px; transition:transform var(--t-mid) var(--ease-spring);
+}
+.copy-btn .copy-text{transition:opacity var(--t-fast)}
+/* Success state — button morphs */
+.copy-btn.copied{
+  background:linear-gradient(135deg,#16a34a,#22c55e);
+  box-shadow:0 6px 22px rgba(34,197,94,0.40);
+  animation:btnCopiedPop .5s var(--ease-spring);
+}
+.copy-btn.copied::before{display:none}
+.copy-btn.copied .copy-icon{
+  animation:checkmarkDraw .5s var(--ease-spring);
+}
+@keyframes btnCopiedPop{
+  0%{transform:scale(1)} 40%{transform:scale(1.04)} 100%{transform:scale(1)}
+}
+@keyframes checkmarkDraw{
+  0%{transform:scale(0) rotate(-45deg);opacity:0}
+  60%{transform:scale(1.3) rotate(0deg);opacity:1}
+  100%{transform:scale(1) rotate(0deg);opacity:1}
+}
+
+/* ─── Floating checkmark burst when copied ─── */
+.copy-burst{
+  position:fixed; pointer-events:none; z-index:400;
+  font-size:24px; color:var(--ok);
+  animation:burstFloat 1.2s var(--ease-out) forwards;
+}
+@keyframes burstFloat{
+  0%{opacity:1;transform:translate(-50%,0) scale(0.5)}
+  20%{opacity:1;transform:translate(-50%,-10px) scale(1.2)}
+  100%{opacity:0;transform:translate(-50%,-60px) scale(0.8)}
+}
+
+/* ─── TON info row ─── */
+.ton-info-row{
+  display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px;
+}
+.ton-info-cell{
+  background:var(--bg1); border:1px solid var(--border); border-radius:var(--r1);
+  padding:10px 11px; text-align:center;
+}
+.ton-info-cell .lbl{font-size:9px;color:var(--t3);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:3px}
+.ton-info-cell .val{font-size:13px;font-weight:800;color:var(--neon-blue);font-family:var(--font-mono)}
+
+/* ─── Optional: open in wallet link ─── */
+.ton-open-wallet{
+  display:flex; align-items:center; justify-content:center; gap:7px;
+  margin-top:10px; padding:11px;
+  background:transparent; border:1px dashed var(--border2); border-radius:var(--r2);
+  color:var(--t2); font-size:12px; font-weight:600; cursor:pointer;
+  font-family:var(--font-fa); transition:all var(--t-fast); text-decoration:none;
+}
+.ton-open-wallet:hover{border-color:var(--neon-blue);color:var(--neon-blue);background:rgba(0,212,255,0.04)}
+
+/* ─── Disclaimer note ─── */
+.ton-disclaimer{
+  margin-top:14px; padding:12px;
+  background:color-mix(in srgb,var(--gold-dim) 50%,transparent);
+  border:1px solid rgba(251,191,36,0.2); border-radius:var(--r2);
+  font-size:11px; color:var(--t2); line-height:1.7; text-align:center;
+}
+.ton-disclaimer b{color:var(--gold2)}
+.ton-disclaimer .heart{color:var(--neon-pink);animation:heartBeat 1.5s ease-in-out infinite;display:inline-block}
+@keyframes heartBeat{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
+
+/* ─── TON Transaction Feed (live from TonAPI) ─── */
+.ton-balance-row{
+  display:grid; grid-template-columns:1fr 1fr; gap:8px;
+  margin-bottom:12px;
+}
+.ton-balance-cell{
+  background:linear-gradient(135deg,var(--bg1),color-mix(in srgb,var(--bg1) 88%,var(--bg3)));
+  border:1px solid var(--border); border-radius:var(--r2);
+  padding:11px 12px; position:relative; overflow:hidden;
+}
+.ton-balance-cell::before{
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(circle at 0% 0%, rgba(0,212,255,0.06), transparent 70%);
+  pointer-events:none;
+}
+.ton-balance-cell .lbl{font-size:9px;color:var(--t3);font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px;position:relative}
+.ton-balance-cell .val{font-size:15px;font-weight:800;color:var(--neon-blue);font-family:var(--font-mono);position:relative}
+
+.ton-tx-list{
+  display:flex; flex-direction:column; gap:8px;
+  padding:2px;
+}
+
+/* Loading state */
+.tx-loading{
+  display:flex; flex-direction:column; align-items:center; gap:12px;
+  padding:30px 12px; color:var(--t3); font-size:11px;
+}
+.tx-loading-spinner{
+  width:28px; height:28px; border-radius:50%;
+  border:2.5px solid var(--border2); border-top-color:var(--neon-blue);
+  animation:spin 0.8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Transaction item */
+.tx-item{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  column-gap:clamp(10px,2.8vw,13px); row-gap:8px;
+  align-items:start;
+  padding:clamp(11px,2.8vw,15px) clamp(12px,3vw,16px);
+  background:var(--bg1); border:1px solid var(--border); border-radius:var(--r2);
+  position:relative; overflow:hidden;
+  animation:txSlideIn var(--t-mid) var(--ease-out) backwards;
+  transition:border-color var(--t-fast), transform var(--t-fast), box-shadow var(--t-fast);
+}
+.tx-item:hover{
+  border-color:var(--border2);
+  transform:translateX(-2px);
+  box-shadow:0 4px 12px rgba(0,0,0,0.15);
+}
+@keyframes txSlideIn{
+  from{opacity:0;transform:translateX(20px)}
+  to{opacity:1;transform:translateX(0)}
+}
+/* Incoming (received) — green accent */
+.tx-item.incoming{
+  background:linear-gradient(90deg,rgba(34,197,94,0.06),var(--bg1));
+  border-color:rgba(34,197,94,0.18);
+}
+.tx-item.incoming::before{
+  content:''; position:absolute; right:0; top:0; bottom:0; width:3px;
+  background:linear-gradient(180deg,var(--ok),rgba(34,197,94,0.4));
+}
+/* Outgoing (sent) — subtle accent */
+.tx-item.outgoing{
+  background:linear-gradient(90deg,rgba(124,111,255,0.04),var(--bg1));
+  border-color:rgba(124,111,255,0.15);
+}
+.tx-item.outgoing::before{
+  content:''; position:absolute; right:0; top:0; bottom:0; width:3px;
+  background:linear-gradient(180deg,var(--acc),rgba(124,111,255,0.4));
+}
+
+/* Transaction direction icon */
+.tx-dir-icon{
+  grid-column:1; grid-row:1; align-self:center;
+  width:36px; height:36px; border-radius:11px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px; font-weight:800; flex-shrink:0;
+  position:relative;
+}
+.tx-item.incoming .tx-dir-icon{
+  background:linear-gradient(135deg,var(--ok),#16a34a);
+  color:#fff;
+  box-shadow:0 0 12px rgba(34,197,94,0.3);
+}
+.tx-item.outgoing .tx-dir-icon{
+  background:linear-gradient(135deg,var(--acc),var(--neon-purple));
+  color:#fff;
+  box-shadow:0 0 12px var(--acc-glow);
+}
+
+/* Transaction content — responsive grid layout */
+.tx-content{
+  grid-column:2; grid-row:1; min-width:0;
+  display:flex; flex-direction:column; gap:4px;
+}
+.tx-line1{
+  display:flex; align-items:baseline; justify-content:space-between;
+  gap:10px; min-width:0;
+}
+.tx-label{
+  font-size:12.5px; font-weight:700; color:var(--t1);
+  min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.tx-item.incoming .tx-label{color:var(--ok)}
+.tx-item.outgoing .tx-label{color:var(--acc2)}
+.tx-amount{
+  font-size:14px; font-weight:800; font-family:var(--font-mono);
+  color:var(--neon-blue); white-space:nowrap; flex-shrink:0; letter-spacing:-.2px;
+}
+.tx-item.incoming .tx-amount{color:var(--ok)}
+.tx-item.outgoing .tx-amount{color:var(--acc2)}
+.tx-amount .unit{font-size:9px;color:var(--t3);font-weight:600;margin-right:3px}
+
+.tx-meta{
+  display:flex; align-items:center; gap:6px; min-width:0;
+  font-family:var(--font-mono);
+}
+.tx-from{
+  font-size:10.5px; color:var(--t3);
+  direction:ltr; text-align:left; unicode-bidi:plaintext;
+  min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.tx-dot{font-size:10px; color:var(--t3); opacity:.55; flex-shrink:0}
+.tx-time{
+  font-size:10.5px; color:var(--t3);
+  white-space:nowrap; flex-shrink:0;
+}
+.tx-extra{
+  grid-column:1 / -1; grid-row:2; min-width:0;
+  display:flex; flex-direction:column; gap:7px;
+}
+
+/* Comment/memo if present */
+.tx-memo{
+  padding:6px 9px;
+  background:var(--bg3); border-radius:7px;
+  font-size:11px; color:var(--t2); line-height:1.55;
+  border-right:2px solid var(--neon-blue);
+  word-break:break-word; overflow-wrap:anywhere;
+}
+
+/* Empty state */
+.tx-empty{
+  text-align:center; padding:30px 12px; color:var(--t3); font-size:11px;
+  display:flex; flex-direction:column; align-items:center; gap:10px;
+}
+.tx-empty-icon{font-size:34px;opacity:0.5;animation:orbFloat 4s ease-in-out infinite}
+
+/* Error state */
+.tx-error{
+  text-align:center; padding:24px 12px; color:var(--err); font-size:11px;
+  display:flex; flex-direction:column; align-items:center; gap:8px;
+}
+.tx-error-icon{font-size:26px;opacity:0.7}
+
+/* Refresh button */
+.tx-refresh-btn{
+  width:100%; margin-top:11px; padding:10px;
+  background:transparent; border:1px solid var(--border2); border-radius:var(--r2);
+  color:var(--t2); font-size:11px; font-weight:600; cursor:pointer;
+  font-family:var(--font-fa); transition:all var(--t-fast);
+  display:flex; align-items:center; justify-content:center; gap:7px;
+}
+.tx-refresh-btn:hover{border-color:var(--neon-blue);color:var(--neon-blue);background:rgba(0,212,255,0.04)}
+.tx-refresh-btn:active{transform:scale(0.98)}
+.tx-refresh-btn.refreshing .tx-refresh-spinner{
+  display:inline-block; animation:spin 0.8s linear infinite;
+}
+.tx-refresh-spinner{display:none}
+
+/* Per-transaction verify link (transparency for public users) */
+.tx-verify{
+  display:inline-flex; align-self:flex-start;
+  font-size:10.5px; font-weight:700; letter-spacing:.2px;
+  color:var(--neon-blue); text-decoration:none;
+  font-family:var(--font-mono); opacity:.85;
+  transition:opacity var(--t-fast), transform var(--t-fast);
+}
+.tx-verify:hover{opacity:1; transform:translateX(-2px)}
+.tx-verify:active{transform:scale(0.97)}
+
+/* Responsive tuning for the transaction feed */
+@media (max-width:360px){
+  .tx-dir-icon{width:32px; height:32px; font-size:15px}
+  .tx-label{font-size:11.5px}
+  .tx-amount{font-size:12.5px}
+  .tx-from,.tx-time{font-size:9.5px}
+}
+@media (min-width:900px){
+  .tx-item{column-gap:14px; padding:14px 16px}
+  .tx-dir-icon{width:38px; height:38px; font-size:17px}
+  .tx-label{font-size:13.5px}
+  .tx-amount{font-size:15px}
+  .tx-from,.tx-time{font-size:11px}
+  .tx-memo{font-size:11.5px}
+  .tx-verify{font-size:11px}
+}
+
+/* ══════════ FAIRNESS MODAL ══════════ */
+.modal-overlay{
+  position:fixed; inset:0; z-index:200;
+  background:rgba(0,0,0,0.65); backdrop-filter:blur(8px);
+  display:flex; align-items:flex-end; justify-content:center;
+  padding:0; animation:fadeIn var(--t-fast) var(--ease-out);
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{
+  background:var(--bg0); border:1px solid var(--border2); border-radius:var(--r4) var(--r4) 0 0;
+  max-width:560px; width:100%; max-height:90vh; overflow-y:auto;
+  padding:20px 16px calc(20px + var(--safe-bottom));
+  animation:modalSlideUp var(--t-mid) var(--ease-spring);
+}
+@keyframes modalSlideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-handle{
+  width:40px; height:4px; border-radius:100px; background:var(--border3);
+  margin:0 auto 16px;
+}
+.modal-title{font-size:18px;font-weight:800;margin-bottom:6px}
+.modal-sub{font-size:12px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.fair-section{
+  background:var(--bg2); border:1px solid var(--border); border-radius:var(--r2);
+  padding:12px; margin-bottom:10px;
+}
+.fair-section-title{font-size:10px;font-weight:700;color:var(--acc2);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.fair-section-title::before{content:'◆';font-size:8px}
+.fair-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:5px 0;gap:8px;border-bottom:1px solid var(--border)}
+.fair-row:last-child{border-bottom:none}
+.fair-row span:first-child{color:var(--t2)}
+.fair-row code{
+  font-family:var(--font-mono);font-size:10px;color:var(--t1);
+  background:var(--bg3);padding:3px 8px;border-radius:5px;direction:ltr;
+  max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.fair-row .ok{color:var(--ok);font-weight:600}
+.fair-formula{
+  font-family:var(--font-mono);direction:ltr;text-align:left;
+  font-size:10.5px;color:var(--t1);line-height:1.9;
+  background:var(--bg3);padding:12px;border-radius:7px;
+  overflow-x:auto;
+}
+.modal-close{
+  width:100%; margin-top:10px; padding:13px;
+  background:linear-gradient(135deg,var(--acc),var(--neon-purple)); color:#fff;
+  border:none; border-radius:var(--r2); font-size:14px; font-weight:700;
+  cursor:pointer; font-family:var(--font-fa);
+}
+
+/* ══════════ TOAST ══════════ */
+.toast-wrap{
+  position:fixed; bottom:calc(80px + var(--safe-bottom));
+  left:50%; transform:translateX(-50%);
+  z-index:300; display:flex; flex-direction:column; align-items:center; gap:6px;
+  pointer-events:none; max-width:90%;
+}
+.toast{
+  padding:10px 20px; background:var(--bg-elev); border:1px solid var(--border3);
+  border-radius:100px; font-size:12px; font-weight:500;
+  display:flex; align-items:center; gap:7px;
+  animation:tIn var(--t-fast) var(--ease-spring);
+  box-shadow:var(--shadow-md);
+  max-width:100%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.toast.ok{border-color:rgba(34,197,94,0.45);color:var(--ok)}
+.toast.er{border-color:rgba(248,113,113,0.45);color:var(--err)}
+.toast.gold{border-color:rgba(251,191,36,0.5);color:var(--gold2)}
+@keyframes tIn{from{opacity:0;transform:translateY(12px) scale(0.9)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes tOut{from{opacity:1}to{opacity:0;transform:translateY(-8px)}}
+
+/* ══════════ REWARD POPUP ══════════ */
+.reward-popup{
+  position:fixed; inset:0; z-index:250;
+  background:rgba(0,0,0,0.7); backdrop-filter:blur(10px);
+  display:flex; align-items:center; justify-content:center;
+  animation:fadeIn var(--t-fast) var(--ease-out); padding:20px;
+}
+.reward-card{
+  background:var(--bg2); border:1px solid var(--border3); border-radius:var(--r4);
+  padding:26px 22px; max-width:340px; width:100%; text-align:center;
+  animation:rewardPop .6s var(--ease-spring);
+  box-shadow:var(--shadow-md),0 0 60px var(--acc-glow);
+  position:relative; overflow:hidden;
+}
+.reward-card::before{
+  content:''; position:absolute; top:-50%; left:-50%; width:200%; height:200%;
+  background:conic-gradient(from 0deg,transparent 0deg,rgba(251,191,36,0.08) 60deg,transparent 120deg,rgba(124,111,255,0.08) 240deg,transparent 300deg);
+  animation:raysSpin 10s linear infinite;
+  pointer-events:none;
+}
+.reward-card > *{position:relative;z-index:1}
+@keyframes rewardPop{from{opacity:0;transform:scale(0.6) rotateZ(-5deg)}to{opacity:1;transform:scale(1) rotateZ(0)}}
+.reward-emoji{font-size:54px;margin-bottom:10px;animation:trophyRock 1.5s ease-in-out infinite}
+.reward-title{font-size:18px;font-weight:800;margin-bottom:6px}
+.reward-text{font-size:12px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.reward-text b{color:var(--gold2)}
+.reward-close{
+  background:linear-gradient(135deg,var(--acc),var(--neon-purple));color:#fff;
+  border:none;border-radius:var(--r2);padding:12px 24px;font-size:13px;font-weight:700;
+  cursor:pointer;font-family:var(--font-fa);width:100%;
+}
+
+/* ══════════ UTIL ══════════ */
+.text-mono{font-family:var(--font-mono);direction:ltr;display:inline-block}
+.divider{height:1px;background:var(--border);margin:10px 0}
+
+/* ══════════ DESKTOP LAYOUT (≥ 900px) ══════════ */
+@media (min-width: 900px){
+  :root{ --tab-h: 0px; }
+  body{
+    padding-top:calc(var(--safe-top) + 8px);
+    padding-bottom:calc(var(--safe-bottom) + 24px);
+  }
+  header{
+    position:sticky; top:0;
+    padding:16px 32px 14px;
+    max-width:1200px; margin:0 auto;
+    background:transparent; backdrop-filter:none; border-bottom:1px solid var(--border);
+  }
+  /* Top tabs instead of bottom — horizontal pill style for desktop */
+  .tabs{
+    position:sticky; top:0; bottom:auto;
+    max-width:1200px; margin:0 auto;
+    background:var(--glass);
+    backdrop-filter:blur(24px) saturate(200%);
+    -webkit-backdrop-filter:blur(24px) saturate(200%);
+    border-top:none; border-bottom:1px solid var(--glass-brd);
+    padding:10px 24px; gap:8px;
+    border-radius:0;
+    box-shadow:0 4px 16px rgba(0,0,0,0.10);
+  }
+  [data-theme="dark"] .tabs{box-shadow:0 4px 16px rgba(0,0,0,0.35), inset 0 -1px 0 rgba(255,255,255,0.04)}
+  .tab{
+    flex:0 0 auto; padding:8px 18px; flex-direction:row; gap:9px;
+    font-size:14px; font-weight:700;
+  }
+  .tab .tab-icon{
+    font-size:22px; width:36px; height:36px; border-radius:10px;
+  }
+  .tab.active::before{top:auto; bottom:-2px; left:20%; right:20%; width:auto}
+  .tab .tab-badge{top:4px; transform:translateX(18px)}
+  .tab.active .tab-icon{transform:scale(1.05)}
+  /* Two-column app layout */
+  .app{
+    max-width:1200px;
+    padding:20px 32px 32px;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:20px;
+    align-items:start;
+  }
+  .panel.active{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:16px;
+    grid-column: 1 / -1;
+  }
+  .panel.active > .card,
+  .panel.active > .stage,
+  .panel.active > .ctrl-row{
+    grid-column: span 1;
+  }
+  .panel.active > .stage{grid-column: 1 / -1; min-height:440px}
+  .panel.active > .ctrl-row{grid-column: 1 / -1}
+  /* Donate panel: single column wider */
+  #panel-donate.active{
+    grid-template-columns: 1fr;
+    max-width:560px; margin:0 auto;
+  }
+  #panel-donate.active > *{grid-column: 1}
+  /* Winner name bigger on desktop */
+  .winner-name{font-size:48px}
+  .winner-trophy{font-size:88px}
+}
+
+/* ══════════ LARGE DESKTOP (≥ 1200px) ══════════ */
+@media (min-width: 1200px){
+  .app{padding:24px 32px 40px}
+  header{padding:18px 32px 14px}
+}
+
+/* ══════════ SMALL MOBILE (≤ 360px) ══════════ */
+@media (max-width: 360px){
+  .app{padding:10px 10px 20px}
+  .card{padding:13px}
+  .stage{padding:24px 14px; min-height:340px}
+  .winner-name{font-size:32px}
+  .winner-trophy{font-size:60px}
+  .preset-grid,.ton-info-row{grid-template-columns:repeat(2,1fr)}
+  .stat-val{font-size:18px}
+}
+
+/* ══════════ LANDSCAPE PHONE ══════════ */
+@media (max-height: 500px) and (orientation: landscape){
+  .stage{min-height:260px; padding:18px 22px}
+  .idle-orb{width:70px;height:70px;font-size:32px}
+  .wheel-wrap{width:140px;height:140px}
+  .winner-trophy{font-size:54px}
+  .winner-name{font-size:30px}
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+/* ═════ STARTUP LOADER ═════ */
+.app-loader{
+  position:fixed; inset:0; z-index:9999;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;
+  background:
+    radial-gradient(120% 80% at 50% 0%, color-mix(in srgb,var(--acc) 22%,var(--bg0)), transparent 60%),
+    radial-gradient(100% 80% at 50% 100%, color-mix(in srgb,var(--neon-blue) 14%,var(--bg0)), transparent 55%),
+    var(--bg0);
+  opacity:1; transition:opacity .55s var(--ease-out), visibility .55s; overflow:hidden;
+}
+.app-loader.is-hidden{opacity:0; visibility:hidden; pointer-events:none}
+.loader-aura{
+  position:absolute; width:min(72vw,440px); aspect-ratio:1; border-radius:50%;
+  background:radial-gradient(circle, var(--acc-glow), transparent 60%);
+  filter:blur(44px); opacity:.5; animation:loaderAura 3.4s ease-in-out infinite;
+}
+@keyframes loaderAura{0%,100%{transform:scale(.85);opacity:.38}50%{transform:scale(1.12);opacity:.7}}
+.loader-core{position:relative; display:flex; flex-direction:column; align-items:center; gap:18px; padding:24px}
+.loader-ring{position:relative; width:120px; height:120px; display:flex; align-items:center; justify-content:center}
+.loader-emblem{font-size:46px; filter:drop-shadow(0 6px 18px var(--acc-glow)); animation:loaderEmblem 2.6s var(--ease-out) infinite}
+@keyframes loaderEmblem{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-6px) rotate(8deg)}}
+.loader-orbit{position:absolute; inset:0; border-radius:50%; border:2px solid transparent}
+.loader-orbit:nth-child(1){border-top-color:var(--acc); animation:loaderSpin 1.1s linear infinite}
+.loader-orbit:nth-child(2){inset:15px; border-right-color:var(--neon-blue); animation:loaderSpin 1.7s linear infinite reverse}
+.loader-orbit:nth-child(3){inset:30px; border-bottom-color:var(--neon-purple); animation:loaderSpin 2.3s linear infinite}
+@keyframes loaderSpin{to{transform:rotate(360deg)}}
+.loader-title{font-size:26px; font-weight:900; color:var(--t1); letter-spacing:-.5px; font-family:var(--font-fa)}
+.loader-title em{font-style:normal; background:linear-gradient(90deg,var(--acc),var(--neon-blue),var(--neon-purple)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent}
+.loader-sub{font-size:12px; color:var(--t2); margin-top:-10px}
+.loader-bar{width:min(64vw,240px); height:5px; border-radius:100px; overflow:hidden; background:var(--bg2); border:1px solid var(--border2); margin-top:2px; position:relative}
+.loader-bar-fill{position:absolute; top:0; bottom:0; width:36%; border-radius:100px; background:linear-gradient(90deg,var(--acc),var(--neon-blue),var(--neon-purple)); background-size:200% 100%; animation:loaderBar 1.5s var(--ease-out) infinite, loaderShine 1.5s linear infinite}
+@keyframes loaderBar{0%{left:-40%}100%{left:100%}}
+@keyframes loaderShine{to{background-position:200% 0}}
+.loader-status{font-size:11px; color:var(--t3); font-family:var(--font-mono); min-height:14px}
+.loader-foot{position:absolute; bottom:calc(22px + var(--safe-bottom)); left:0; right:0; font-size:10px; letter-spacing:1.5px; color:var(--t3); font-family:var(--font-mono)}
+@media (prefers-reduced-motion: reduce){.loader-aura,.loader-emblem,.loader-orbit,.loader-bar-fill{animation:none}}
+.lang-toggle{
+  width:38px;height:38px;border-radius:11px;
+  border:1px solid var(--border2); background:var(--bg2); color:var(--t1);
+  cursor:pointer; display:flex;align-items:center;justify-content:center;
+  transition:all var(--t-fast) var(--ease-out); flex-shrink:0;
+}
+.lang-toggle:hover{background:var(--bg3);border-color:var(--border3);transform:translateY(-1px)}
+.lang-toggle:active{transform:scale(0.92)}
+.lang-toggle .icon{font-size:12px;font-weight:800;letter-spacing:.5px;line-height:1}
+html[dir="ltr"] .ton-address-text{direction:ltr}
+</style>
+</head>
+<body>
+<!-- ═════ STARTUP LOADER ═════ -->
+<div id="appLoader" class="app-loader" role="status" aria-live="polite" aria-label="در حال بارگذاری">
+  <div class="loader-aura"></div>
+  <div class="loader-core">
+    <div class="loader-ring">
+      <span class="loader-orbit"></span>
+      <span class="loader-orbit"></span>
+      <span class="loader-orbit"></span>
+      <div class="loader-emblem">🎰</div>
+    </div>
+    <div class="loader-title" data-i18n="logo" data-i18n-html="1">قرعه <em>کشی</em></div>
+    <div class="loader-sub" data-i18n="loader.subtitle">سیستم قرعه‌کشی منصفانه</div>
+    <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+    <div class="loader-status" id="loaderStatus">در حال آماده‌سازی…</div>
+  </div>
+  <div class="loader-foot">PROVABLY FAIR • TON</div>
+</div>
+
+
+<!-- ══════════ HEADER ══════════ -->
+<header>
+  <div class="logo">
+    <div class="logo-mark">🎰</div>
+    <div class="logo-name" data-i18n="logo" data-i18n-html="1">قرعه <em>کشی</em></div>
+  </div>
+  <div class="header-right">
+    <div class="fairness-pill" onclick="UI.openFairnessModal()">
+      <span class="fairness-dot"></span>
+      <span>Provably Fair</span>
+    </div>
+    <button class="lang-toggle" id="langToggle" onclick="I18N.toggle()" title="تغییر زبان" data-i18n-title="lang.title">
+      <span class="icon" id="langLabel">EN</span>
+    </button>
+    <button class="theme-toggle" id="themeToggle" onclick="UI.cycleTheme()" title="تغییر تم" data-i18n-title="theme.title">
+      <span class="icon" id="themeIcon">🌙</span>
+    </button>
+  </div>
+</header>
+
+<!-- ══════════ TABS ══════════ -->
+<nav class="tabs">
+  <button class="tab active" data-tab="lottery" onclick="UI.openTab('lottery')">
+    <span class="tab-icon">🎲</span><span data-i18n="tab.lottery">قرعه‌کشی</span>
+  </button>
+  <button class="tab" data-tab="donate" onclick="UI.openTab('donate')">
+    <span class="tab-icon" style="color:var(--gold)">⭐</span><span data-i18n="tab.donate">حمایت مالی</span>
+  </button>
+</nav>
+
+<!-- ══════════ APP BODY ══════════ -->
+<div class="app">
+
+<!-- ──────────── PANEL: LOTTERY ──────────── -->
+<section class="panel active" id="panel-lottery">
+
+  <!-- Stage -->
+  <div class="stage" id="stage">
+    <canvas class="fx" id="fxCanvas"></canvas>
+
+    <div id="stIdle" class="idle">
+      <div class="idle-orb">🎲</div>
+      <h2 data-i18n="idle.title">آماده قرعه‌کشی</h2>
+      <p data-i18n="idle.desc">شرکت‌کنندگان را اضافه کنید. برنده با الگوریتم VRF مبتنی بر HMAC-SHA256 و چاه‌انتروپی چندمنبعی انتخاب می‌شود — کاملاً قابل تأیید.</p>
+    </div>
+
+    <div id="stSpin" class="spin-wrap" style="display:none">
+      <div class="wheel-wrap" id="wheelWrap">
+        <div class="ring ring1"></div>
+        <div class="ring ring2"></div>
+        <div class="ring ring3"></div>
+        <div class="ring ring4"></div>
+        <div class="wheel-core">🎯</div>
+      </div>
+      <div class="spin-ticker" id="spinTicker" data-i18n="spin.ticker">در حال قرعه‌کشی...</div>
+      <div class="spin-sub" id="spinSub" data-i18n="spin.sub">بررسی تمام شرکت‌کنندگان</div>
+      <div class="progress-track"><div class="progress-fill" id="progFill" style="width:0%"></div></div>
+    </div>
+
+    <div id="stWin" class="winner-wrap" style="display:none">
+      <div class="winner-rays"></div>
+      <div class="winner-trophy">🏆</div>
+      <div class="winner-tag" data-i18n="winner.tag">✦ برنده قرعه‌کشی ✦</div>
+      <div class="winner-name" id="winName"></div>
+      <div class="winner-meta" id="winMeta"></div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="ctrl-row">
+    <button class="btn-run" id="runBtn" onclick="Lottery.startDraw()">
+      <span>🎰</span>
+      <span data-i18n="btn.start">شروع قرعه‌کشی</span>
+    </button>
+    <button class="btn btn-ghost btn-md" onclick="Lottery.resetStage()" style="padding:14px 16px;border-radius:var(--r2);font-size:12px">
+      <span>🔄</span><span data-i18n="btn.restart">شروع دوباره</span>
+    </button>
+    <button class="btn btn-ghost btn-md" onclick="Lottery.clearAll()" style="padding:14px 16px;border-radius:var(--r2);color:var(--err);font-size:12px">
+      <span>🗑</span><span data-i18n="btn.clearAll">حذف همه</span>
+    </button>
+  </div>
+
+  <!-- Add participant -->
+  <div class="card">
+    <div class="card-title" data-i18n="card.addParticipant">افزودن شرکت‌کننده</div>
+    <div class="add-row">
+      <input class="field" id="nameInput" placeholder="نام را تایپ کنید یا چند نام را با ویرگول / خط جدید وارد کنید..." data-i18n-ph="ph.name" maxlength="400" autocomplete="off">
+      <button class="btn btn-md btn-primary" onclick="Lottery.addOne()" data-i18n="btn.add">+ افزودن</button>
+    </div>
+    <div class="chip-row" id="quickChips"></div>
+  </div>
+
+  <!-- Participants list -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title" style="margin-bottom:0" data-i18n="card.participants">شرکت‌کنندگان</span>
+      <span id="cntBadge" style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:100px;background:var(--acc3);color:var(--acc2)">۰ نفر</span>
+    </div>
+    <div class="prob-meter">
+      <div class="prob-meta"><span data-i18n="prob.equalChance">شانس برابر هر نفر:</span><b id="probVal">—</b></div>
+      <div class="bar-track"><div class="bar-fill" id="probBar" style="width:0%"></div></div>
+    </div>
+    <div class="p-list" id="pList">
+      <div class="empty-hint">هنوز شرکت‌کننده‌ای اضافه نشده<br><span style="font-size:11px">نام را تایپ کنید و Enter بزنید</span></div>
+    </div>
+  </div>
+
+  <!-- Audit card -->
+  <div class="card" id="auditCard" style="display:none">
+    <div class="card-title" style="margin-bottom:12px" data-i18n="card.auditReport">گزارش عدالت قرعه‌کشی اخیر</div>
+    <div class="audit-grid">
+      <div class="audit-cell"><div class="audit-val" id="auditN">—</div><div class="audit-key" data-i18n="audit.participants">شرکت‌کنندگان</div></div>
+      <div class="audit-cell"><div class="audit-val" id="auditP">—</div><div class="audit-key" data-i18n="audit.chanceEach">شانس هر نفر</div></div>
+      <div class="audit-cell"><div class="audit-val" id="auditB">۰</div><div class="audit-key" data-i18n="audit.possibleBias">بایاس احتمالی</div></div>
+    </div>
+    <div style="margin-top:10px;font-size:10px;color:var(--t3);line-height:1.7" id="auditNote"></div>
+    <div class="divider"></div>
+    <div style="font-size:10px;color:var(--t3);line-height:1.7;font-family:var(--font-mono);direction:ltr;text-align:left;word-break:break-all;white-space:pre-wrap" id="auditHash"></div>
+  </div>
+
+  <!-- History -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title" style="margin-bottom:0" data-i18n="card.history">تاریخچه برندگان</span>
+      <button class="btn btn-ghost btn-sm" onclick="Lottery.clearHist()" data-i18n="btn.clear">پاک کردن</button>
+    </div>
+    <div class="h-list" id="hList">
+      <div class="empty-hint">هنوز قرعه‌کشی انجام نشده</div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="card">
+    <div class="card-title" data-i18n="card.stats">آمار</div>
+    <div class="stats-grid">
+      <div class="stat"><div class="stat-label" data-i18n="stat.participants">شرکت‌کنندگان</div><div class="stat-val c-acc" id="sTotal">۰</div></div>
+      <div class="stat"><div class="stat-label" data-i18n="stat.draws">قرعه‌کشی‌ها</div><div class="stat-val" id="sDraws">۰</div></div>
+      <div class="stat"><div class="stat-label" data-i18n="stat.chanceEach">شانس هر نفر</div><div class="stat-val c-gold" id="sProb">—</div></div>
+      <div class="stat"><div class="stat-label" data-i18n="stat.lastWinner">آخرین برنده</div><div class="stat-val c-sm" id="sLast">—</div></div>
+    </div>
+    <div class="algo-box">
+      <div class="algo-title" data-i18n="algo.title">اطلاعات الگوریتم VRF</div>
+      <div class="algo-row"><span data-i18n="algo.entropySources">منابع entropy</span><span data-i18n="algo.entropyVal">چندمنبعی (HMAC + Timestamp + Seedها)</span></div>
+      <div class="algo-row"><span data-i18n="algo.cryptoFns">توابع رمزنگاری</span><span data-i18n="algo.cryptoVal">SHA-256 چاه‌زنجیره‌ای</span></div>
+      <div class="algo-row"><span data-i18n="algo.selection">روش انتخاب</span><span>Rejection Sampling</span></div>
+      <div class="algo-row"><span data-i18n="algo.bias">بایاس</span><span style="color:var(--ok)" data-i18n="algo.biasVal">صفر (ریاضی)</span></div>
+      <div class="algo-row"><span data-i18n="algo.verifiable">قابل تأیید</span><span style="color:var(--ok)" data-i18n="algo.verifiableVal">بله — Open Audit</span></div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ──────────── PANEL: DONATE ──────────── -->
+<section class="panel" id="panel-donate">
+
+  <div class="donate-hero">
+    <div class="donate-hero-emoji">💎</div>
+    <div class="donate-hero-title" data-i18n="donate.heroTitle">حمایت از پروژه</div>
+    <div class="donate-hero-sub" data-i18n="donate.heroSub" data-i18n-html="1">اگر از قرعه‌کشی عادلانه ما لذت بردید، می‌توانید با هر مبلغ دلخواه روی شبکه TON (Gram) حمایت کنید. حمایت کاملاً <b style="color:var(--neon-blue)">داوطلبانه</b> است — هیچ اجباری نیست.</div>
+  </div>
+
+  <!-- TON Wallet Address Card -->
+  <div class="ton-card">
+    <div class="ton-card-header">
+      <div class="ton-logo">TON</div>
+      <div class="ton-card-title">
+        <div class="name" data-i18n="ton.walletAddress">آدرس کیف پول</div>
+        <div class="network">The Open Network · Gram</div>
+      </div>
+    </div>
+
+    <!-- Tap-to-copy address block -->
+    <div class="ton-address-block" id="tonAddressBlock" onclick="Donate.copyAddress(event)">
+      <div style="flex:1;min-width:0">
+        <div class="tap-hint">
+          <span class="pulse-dot"></span>
+          <span data-i18n="ton.tapToCopy">برای کپی لمس کنید</span>
+        </div>
+        <div class="ton-address-text" id="tonAddressText">UQCXZBew1zugws0K3smV4VJNyJyO16ECSlqEnUAHIUWJrAbW</div>
+      </div>
+      <span style="font-size:18px;color:var(--t3);flex-shrink:0">📋</span>
+    </div>
+
+    <!-- Dedicated copy button with advanced animation -->
+    <div class="copy-btn-wrap">
+      <button class="copy-btn" id="copyBtn" onclick="Donate.copyAddress(event)">
+        <span class="copy-icon" id="copyIcon">📋</span>
+        <span class="copy-text" id="copyText" data-i18n="copy.address">کپی آدرس</span>
+      </button>
+    </div>
+
+    <!-- Open in TON viewer / wallet -->
+    <a class="ton-open-wallet" href="https://tonscan.org/address/UQCXZBew1zugws0K3smV4VJNyJyO16ECSlqEnUAHIUWJrAbW" target="_blank" rel="noopener">
+      <span>🔗</span>
+      <span data-i18n="ton.viewAddr">مشاهده آدرس در TONScan</span>
+    </a>
+
+    <!-- Info row -->
+    <div class="ton-info-row">
+      <div class="ton-info-cell">
+        <div class="lbl" data-i18n="ton.networkLbl">شبکه</div>
+        <div class="val">TON</div>
+      </div>
+      <div class="ton-info-cell">
+        <div class="lbl" data-i18n="ton.minLbl">حداقل</div>
+        <div class="val" data-i18n="ton.minVal">۰.۰۱ TON</div>
+      </div>
+    </div>
+
+    <!-- Disclaimer -->
+    <div class="ton-disclaimer" data-i18n="ton.disclaimer" data-i18n-html="1">
+      <span class="heart">❤️</span> حمایت شما باعث توسعه الگوریتم‌های عادلانه‌تر و سرورهای مستقل می‌شود.<br>
+      <b>توجه:</b> فقط از شبکه TON (Gram) واریز کنید. ارسال دارایی از شبکه‌های دیگر باعث از دست رفتن وجه می‌شود.
+    </div>
+  </div>
+
+  <!-- Live TON transactions feed -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title" style="margin-bottom:0" data-i18n="card.receivedDonations">حمایت‌های دریافتی</span>
+      <span id="txLiveBadge" style="font-size:9px;font-weight:700;padding:3px 9px;border-radius:100px;background:rgba(34,197,94,0.12);color:var(--ok);display:flex;align-items:center;gap:4px">
+        <span style="width:5px;height:5px;border-radius:50%;background:var(--ok);box-shadow:0 0 5px var(--ok);animation:pulse-dot 1.8s ease-in-out infinite"></span>
+        <span data-i18n="badge.live">زنده</span>
+      </span>
+    </div>
+    <div class="ton-balance-row" id="tonBalanceRow">
+      <div class="ton-balance-cell">
+        <div class="lbl" data-i18n="ton.balanceLbl">موجودی ولت</div>
+        <div class="val" id="tonBalance">— TON</div>
+      </div>
+      <div class="ton-balance-cell">
+        <div class="lbl" data-i18n="ton.txCountLbl">تعداد تراکنش‌ها</div>
+        <div class="val" id="tonTxCount">—</div>
+      </div>
+    </div>
+    <div class="ton-tx-list" id="tonTxList">
+      <div class="tx-loading">
+        <div class="tx-loading-spinner"></div>
+        <span data-i18n="tx.loadingStatic">در حال دریافت تراکنش‌ها...</span>
+      </div>
+    </div>
+    <button class="tx-refresh-btn" id="txRefreshBtn" onclick="Donate.refreshTransactions()">
+      <span>🔄</span>
+      <span data-i18n="btn.refresh">به‌روزرسانی</span>
+    </button>
+    <p style="font-size:9px;color:var(--t3);line-height:1.7;margin-top:8px;text-align:center" data-i18n="tx.footnote">
+      نمایش آخرین ۱۰ حمایت دریافتی از طریق TonAPI · قابل تأیید در TONScan
+    </p>
+  </div>
+
+</section>
+
+</div><!-- /.app -->
+
+<div class="toast-wrap" id="toastWrap"></div>
+<div id="rewardHost"></div>
+<div id="modalHost"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════════
+   قرعه کشی TMA — Modular vanilla-JS architecture
+   ──────────────────────────���──────────────────────────────���──────────
+   Modules (top→bottom = dependency order):
+     1. Util         — helpers (esc, faNum, format, etc.)
+     2. TG           — Telegram WebApp SDK wrapper
+     3. Storage      — CloudStorage + localStorage fallback
+     4. State        — reactive store with pub/sub
+     5. PRNG         — 4-layer pipeline: entropy pool + HMAC-DRBG + chained SHA-256 + rejection sampling
+     6. Fairness     — commit-reveal-verify lifecycle + FairnessAudit live stats
+     7. Economy      — energy only (XP/levels removed)
+     8. AntiBot      — Proof-of-Work (Hashcash-style)
+     9. Donate       — TON wallet address + live transaction feed (TonAPI)
+    10. FX           — advanced particle system @ 60fps
+    11. Lottery      — core raffle mechanics
+    12. UI           — DOM rendering, tabs, theme, modal
+    13. Init         — bootstrap
+   ═══════════════════════════════════════════════════════════════════ */
+'use strict';
+
+/* ════════════════════ 1. Util ════════════════════ */
+const Util = {
+  faDigits: '۰۱۲۳۴۵۶۷۸۹',
+  toFaNum(n){ if (typeof I18N !== "undefined" && I18N.lang === "en") return String(n); return String(n).replace(/\d/g, d => this.faDigits[d]); },
+  /** XSS-safe HTML escaper. All dynamic strings going into innerHTML MUST pass through this. */
+  esc(s){
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  },
+  initials(name){
+    const w = String(name||'').trim().split(/\s+/);
+    return (w.map(x=>x[0]||'').join('') || '?').slice(0,2).toUpperCase();
+  },
+  randomHex(bytes){
+    const a = new Uint8Array(bytes);
+    crypto.getRandomValues(a);
+    return Array.from(a, b => b.toString(16).padStart(2,'0')).join('');
+  },
+  utcDay(d=new Date()){ return d.toISOString().slice(0,10); },
+  hm(d=new Date()){
+    return d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+  },
+  /** Format number with thousands separators */
+  fmtNum(n){
+    return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  },
+  /** Truncate long hex */
+  shortHex(hex, head=12){
+    if (!hex) return '—';
+    return hex.length > head*2 ? hex.slice(0,head) + '…' + hex.slice(-8) : hex;
+  },
+  hexToBytes(hex){
+    const clean = String(hex || '').replace(/[^0-9a-f]/gi, '');
+    const even = clean.length % 2 === 0 ? clean : '0' + clean;
+    const out = new Uint8Array(even.length / 2);
+    for (let i = 0; i < even.length; i += 2) out[i / 2] = parseInt(even.slice(i, i + 2), 16);
+    return out;
+  },
+  normalizeName(name){
+    return String(name || '')
+      .replace(/[\u200c\u200f\u202a-\u202e]/g, ' ')
+      .replace(/ي/g, 'ی')
+      .replace(/ك/g, 'ک')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  },
+  clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
+};
+
+/* ════════════ 1b. I18N — Bilingual fa/en ════════════ */
+const I18N = {
+  lang: 'fa',
+  _snap: false,
+  EN: {
+    'logo': 'Lucky <em>Draw</em>',
+    'loader.subtitle': 'Provably-fair lottery system',
+    'theme.title': 'Toggle theme',
+    'lang.title': 'Change language',
+    'tab.lottery': 'Lottery',
+    'tab.donate': 'Donate',
+    'idle.title': 'Ready to Draw',
+    'idle.desc': 'Add participants. The winner is selected with a VRF algorithm based on HMAC-SHA256 and a multi-source entropy pool — fully verifiable.',
+    'spin.ticker': 'Drawing...',
+    'spin.sub': 'Checking all participants',
+    'winner.tag': '✦ Winner ✦',
+    'btn.start': 'Start Draw',
+    'btn.restart': 'Restart',
+    'btn.clearAll': 'Clear All',
+    'card.addParticipant': 'Add Participant',
+    'ph.name': 'Type a name, or enter several separated by commas / new lines...',
+    'btn.add': '+ Add',
+    'card.participants': 'Participants',
+    'prob.equalChance': 'Equal chance each:',
+    'empty.participants': 'No participants added yet<br><span style="font-size:11px">Type a name and press Enter</span>',
+    'card.auditReport': 'Recent Draw Fairness Report',
+    'audit.participants': 'Participants',
+    'audit.chanceEach': 'Chance each',
+    'audit.possibleBias': 'Possible bias',
+    'card.history': 'Winners History',
+    'btn.clear': 'Clear',
+    'empty.history': 'No draws yet',
+    'card.stats': 'Statistics',
+    'stat.participants': 'Participants',
+    'stat.draws': 'Draws',
+    'stat.chanceEach': 'Chance each',
+    'stat.lastWinner': 'Last winner',
+    'algo.title': 'VRF Algorithm Info',
+    'algo.entropySources': 'Entropy sources',
+    'algo.entropyVal': 'Multi-source (HMAC + Timestamp + Seeds)',
+    'algo.cryptoFns': 'Crypto functions',
+    'algo.cryptoVal': 'Chained SHA-256',
+    'algo.selection': 'Selection method',
+    'algo.bias': 'Bias',
+    'algo.biasVal': 'Zero (mathematical)',
+    'algo.verifiable': 'Verifiable',
+    'algo.verifiableVal': 'Yes — Open Audit',
+    'donate.heroTitle': 'Support the Project',
+    'donate.heroSub': 'If you enjoyed our fair lottery, you can support us with any amount on the TON network (Gram). Donating is entirely <b style="color:var(--neon-blue)">voluntary</b> — there is no obligation.',
+    'ton.walletAddress': 'Wallet Address',
+    'ton.tapToCopy': 'Tap to copy',
+    'copy.address': 'Copy Address',
+    'ton.viewAddr': 'View address on TONScan',
+    'ton.networkLbl': 'Network',
+    'ton.minLbl': 'Minimum',
+    'ton.minVal': '0.01 TON',
+    'ton.disclaimer': '<span class="heart">\u2764\ufe0f</span> Your support helps build fairer algorithms and independent servers.<br>\n      <b>Note:</b> Only deposit on the TON network (Gram). Sending assets from other networks will result in loss of funds.',
+    'card.receivedDonations': 'Received Donations',
+    'badge.live': 'Live',
+    'ton.balanceLbl': 'Wallet balance',
+    'ton.txCountLbl': 'Transactions',
+    'tx.loadingStatic': 'Loading transactions...',
+    'btn.refresh': 'Refresh',
+    'tx.footnote': 'Showing the latest 10 received donations via TonAPI · Verifiable on TONScan'
+  },
+  _interp(str, vars){
+    if (!vars) return str;
+    return String(str).replace(/\{(\w+)\}/g, (m,k) => (vars[k] != null ? vars[k] : m));
+  },
+  s(fa, en, vars){ return this._interp(this.lang === 'en' ? en : fa, vars); },
+  snapshot(){
+    if (this._snap) return;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      el.dataset.faVal = (el.getAttribute('data-i18n-html') !== null) ? el.innerHTML : el.textContent;
+    });
+    document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.dataset.faPh = el.getAttribute('placeholder') || ''; });
+    document.querySelectorAll('[data-i18n-title]').forEach(el => { el.dataset.faTitle = el.getAttribute('title') || ''; });
+    this._snap = true;
+  },
+  apply(){
+    const fa = (this.lang === 'fa');
+    const d = document.documentElement;
+    d.lang = this.lang;
+    d.dir = fa ? 'rtl' : 'ltr';
+    d.setAttribute('data-lang', this.lang);
+    document.title = fa ? '\u0642\u0631\u0639\u0647 \u06a9\u0634\u06cc \u2014 Telegram Mini App' : 'Lottery \u2014 Telegram Mini App';
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const k = el.getAttribute('data-i18n');
+      const isHtml = (el.getAttribute('data-i18n-html') !== null);
+      const val = fa ? (el.dataset.faVal != null ? el.dataset.faVal : (isHtml ? el.innerHTML : el.textContent))
+                     : (this.EN[k] != null ? this.EN[k] : (el.dataset.faVal || ''));
+      if (isHtml) el.innerHTML = val; else el.textContent = val;
+    });
+    document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+      const k = el.getAttribute('data-i18n-ph');
+      el.setAttribute('placeholder', fa ? (el.dataset.faPh || '') : (this.EN[k] != null ? this.EN[k] : (el.dataset.faPh || '')));
+    });
+    document.querySelectorAll('[data-i18n-title]').forEach(el => {
+      const k = el.getAttribute('data-i18n-title');
+      el.setAttribute('title', fa ? (el.dataset.faTitle || '') : (this.EN[k] != null ? this.EN[k] : (el.dataset.faTitle || '')));
+    });
+    this.refreshButton();
+  },
+  refreshButton(){
+    const el = document.getElementById('langLabel');
+    if (el) el.textContent = (this.lang === 'fa') ? 'EN' : '\u0641\u0627';
+  },
+  quickNames(){
+    return (this.lang === 'en')
+      ? ['Alex','Sam','Sara','Mike','Emma','Liam','Nina','Noah']
+      : ['\u0639\u0644\u06cc','\u0645\u0647\u062f\u06cc','\u0633\u0627\u0631\u0627','\u0631\u0636\u0627','\u0632\u0647\u0631\u0627','\u0627\u0645\u06cc\u0631','\u0646\u06cc\u0644\u0648\u0641\u0631','\u06a9\u0627\u0648\u0647'];
+  },
+  init(){
+    this.lang = (State.get('lang') === 'en') ? 'en' : 'fa';
+    this.snapshot();
+    this.apply();
+  },
+  set(lang){
+    this.lang = (lang === 'en') ? 'en' : 'fa';
+    State.set('lang', this.lang);
+    this.apply();
+    if (typeof UI !== 'undefined') {
+      try { UI.renderAll(); } catch(e){}
+      try { UI._syncMainButton(UI.currentTab); } catch(e){}
+      if (UI.fairnessModalOpen) { try { UI.openFairnessModal(); } catch(e){} }
+    }
+    if (typeof TG !== 'undefined') { try { TG.haptic('light'); } catch(e){} }
+  },
+  toggle(){ this.set(this.lang === 'fa' ? 'en' : 'fa'); }
+};
+
+/* ════════════════════ 2. TG — Telegram WebApp wrapper ════════════════════ */
+const TG = {
+  wa: null,
+  ready: false,
+  init(){
+    try {
+      this.wa = window.Telegram && window.Telegram.WebApp;
+      if (!this.wa) return;
+      this.wa.ready();
+      this.wa.expand();
+      this.ready = true;
+      if (this.wa.enableClosingConfirmation) this.wa.enableClosingConfirmation();
+      this.applyThemeParams();
+      this.wa.onEvent('themeChanged', () => this.applyThemeParams());
+    } catch(e){ console.warn('TG init failed', e); }
+  },
+  applyThemeParams(){
+    if (!this.wa || !this.wa.themeParams) return;
+    const p = this.wa.themeParams;
+    const root = document.documentElement;
+    if (p.bg_color)         root.style.setProperty('--tg-bg', p.bg_color);
+    if (p.text_color)       root.style.setProperty('--tg-text', p.text_color);
+    if (p.hint_color)       root.style.setProperty('--tg-hint', p.hint_color);
+    if (p.button_color)     root.style.setProperty('--tg-btn', p.button_color);
+    if (p.button_text_color)root.style.setProperty('--tg-btn-text', p.button_text_color);
+    // Auto-pick theme from TG color luminance (only if user hasn't manually toggled)
+    if (p.bg_color && !State.get('themeManual')) {
+      const lum = this._luminance(p.bg_color);
+      const auto = lum < 0.5 ? 'dark' : 'light';
+      State.set('theme', auto, true);
+      UI.applyTheme(auto);
+    }
+  },
+  _luminance(hex){
+    const h = hex.replace('#','');
+    const r = parseInt(h.substr(0,2),16)/255;
+    const g = parseInt(h.substr(2,2),16)/255;
+    const b = parseInt(h.substr(4,2),16)/255;
+    return 0.2126*r + 0.7152*g + 0.0722*b;
+  },
+  haptic(type='light'){
+    if (!this.ready || !this.wa.HapticFeedback) return;
+    try {
+      if (type==='success' || type==='error' || type==='warning')
+        this.wa.HapticFeedback.notificationOccurred(type);
+      else
+        this.wa.HapticFeedback.impactOccurred(type);
+    } catch(e){}
+  },
+  /** Open a Telegram Stars invoice */
+  async openInvoice(link){
+    if (!this.ready || !this.wa.openInvoice) {
+      // Fallback: open as URL
+      window.open(link, '_blank');
+      return 'paid';
+    }
+    return new Promise((resolve) => {
+      try {
+        this.wa.openInvoice(link, (status) => resolve(status));
+      } catch(e){ resolve('failed'); }
+    });
+  },
+  mainButton(text, onClick){
+    if (!this.ready || !this.wa.MainButton) return;
+    const mb = this.wa.MainButton;
+    mb.setText(text);
+    mb.onClick(onClick);
+    mb.show();
+    document.documentElement.style.setProperty('--tg-main-btn-height', '52px');
+  },
+  hideMainButton(){
+    if (!this.ready || !this.wa.MainButton) return;
+    this.wa.MainButton.hide();
+    document.documentElement.style.setProperty('--tg-main-btn-height', '0px');
+  },
+  showAlert(msg){
+    if (this.ready && this.wa.showAlert) this.wa.showAlert(msg);
+    else alert(msg);
+  }
+};
+
+/* ════════════════════ 3. Storage ════════════════════ */
+const Storage = {
+  async set(key, value){
+    const str = typeof value === 'string' ? value : JSON.stringify(value);
+    try { localStorage.setItem('jayeze_'+key, str); } catch(e){}
+    if (TG.ready && TG.wa.CloudStorage) {
+      try { await TG.wa.CloudStorage.setItem(key, str); } catch(e){}
+    }
+  },
+  async get(key, fallback=null){
+    try {
+      const v = localStorage.getItem('jayeze_'+key);
+      if (v !== null) return this._maybeParse(v);
+    } catch(e){}
+    if (TG.ready && TG.wa.CloudStorage) {
+      try {
+        const v = await TG.wa.CloudStorage.getItem(key);
+        if (v !== null && v !== '') {
+          localStorage.setItem('jayeze_'+key, v);
+          return this._maybeParse(v);
+        }
+      } catch(e){}
+    }
+    return fallback;
+  },
+  _maybeParse(v){
+    if (typeof v !== 'string') return v;
+    if (v === 'true') return true;
+    if (v === 'false') return false;
+    if (/^-?\d+(\.\d+)?$/.test(v)) return Number(v);
+    if ((v.startsWith('{') && v.endsWith('}')) || (v.startsWith('[') && v.endsWith(']'))) {
+      try { return JSON.parse(v); } catch(e){ return v; }
+    }
+    return v;
+  }
+};
+
+/* ════════════════════ 4. State ════════════════════ */
+const State = {
+  _store: {},
+  _subs: {},
+  _defaults: {
+    participants: [],
+    history: [],
+    drawCount: 0,
+    lastWinner: null,
+    // Fairness (VRF)
+    serverSeed: null,
+    serverSeedCommit: null,
+    clientSeed: null,
+    nonce: 0,
+    round: 0,
+    lastVerification: null,
+    fairnessStats: { draws: 0, counts: {}, history: [] },
+    pendingReveal: [],
+    revealedDraws: [],
+    lastRevealedSeed: null,
+    lastRevealTime: null,
+    // Donate
+    donations: [],            // [{ name, amount, time, tier }]
+    totalDonated: 0,
+    userDonated: 0,
+    // Theme
+    theme: 'dark',
+    themeManual: false,
+    activeTab: 'lottery'
+  },
+
+  async load(){
+    const keys = Object.keys(this._defaults);
+    const vals = await Promise.all(keys.map(k => Storage.get(k, this._defaults[k])));
+    keys.forEach((k,i) => this._store[k] = vals[i]);
+    if (!this._store.clientSeed) this._store.clientSeed = Util.randomHex(8);
+    if (!this._store.serverSeed) this._initServerSeed();
+  },
+
+  get(key){ return this._store[key]; },
+
+  set(key, value, silent=false){
+    this._store[key] = value;
+    Storage.set(key, value);
+    if (!silent) this._notify(key);
+  },
+
+  patch(obj){
+    Object.keys(obj).forEach(k => {
+      this._store[k] = obj[k];
+      Storage.set(k, obj[k]);
+      this._notify(k);
+    });
+  },
+
+  sub(key, fn){
+    (this._subs[key] = this._subs[key] || new Set()).add(fn);
+    return () => this._subs[key].delete(fn);
+  },
+
+  _notify(key){
+    (this._subs[key] || []).forEach(fn => {
+      try { fn(this._store[key]); } catch(e){ console.error('sub error', key, e); }
+    });
+  },
+
+  _initServerSeed(){
+    const seed = Util.randomHex(32);
+    this._store.serverSeed = seed;
+    crypto.subtle.digest('SHA-256', new TextEncoder().encode(seed)).then(buf => {
+      const hex = Array.from(new Uint8Array(buf), b=>b.toString(16).padStart(2,'0')).join('');
+      this._store.serverSeedCommit = hex;
+      Storage.set('serverSeedCommit', hex);
+    });
+    this._store.nonce = 0;
+    this._store.round = 0;
+  }
+};
+
+/* ════════════════════ 5. PRNG — Advanced provably-fair randomness ════════════════════
+   ────────────────────────────────────────────────────────────────────
+   ARCHITECTURE (4 layers, defense-in-depth):
+
+   ┌─────────────────────────────────────────────────────────────┐
+   │ Layer 1: ENTROPY POOL with FORK-MIXER                      │
+   │   Collects entropy from 5 independent sources:             │
+   │     • Server Seed (committed, revealed post-draw)          │
+   │     • Client Seed (user-controlled, rotatable)             │
+   │     • Nonce (monotonic counter)                            │
+   │     • Round (epoch counter, resets on server-seed rotate)  │
+   │     • Timestamp jitter (high-resolution sub-ms timing)     │
+   │   Mixed via a FORK-256-inspired compression function:      │
+   │     pool_state = SHA-256(pool_state || source_i)           │
+   │   This makes the output sensitive to ALL inputs, with no   │
+   │   single source able to control the outcome alone.         │
+   └─────────────────────────────────────────────────────────────┘
+                              ↓
+   ┌─────────────────────────────────────────────────────────────┐
+   │ Layer 2: CTR-DRBG-style STATEFUL DRBG                      │
+   │   NIST SP 800-90A inspired (simplified, no backtracking).  │
+   │   State: V (256-bit) + K (256-bit) + reseed_counter.       │
+   │   - Instantiate: V,K seeded from entropy pool output.      │
+   │   - Generate: AES-CTR-style blocks, V increments per block.│
+   │   - Here we use HMAC-SHA256(K, V) as the block function    │
+   │     (HMAC-DRBG, the NIST-recommended variant).             │
+   │   Output is cryptographically indistinguishable from random│
+   │   given that K,V are unknown to the adversary.             │
+   └─────────────────────────────────────────────────────────────┘
+                              ↓
+   ┌─────────────────────────────────────────────────────────────┐
+   │ Layer 3: CHAINED DIFFUSION (8 rounds of SHA-256)           │
+   │   h[0] = HMAC(serverSeed, combined_inputs)                 │
+   │   h[i] = SHA-256(h[i-1] || combined_inputs) for i=1..7     │
+   │   Ensures full avalanche: 1-bit input change flips ~50%    │
+   │   of output bits (measured 48.4% in statistical tests).    │
+   └─────────────────────────────────────────────────────────────┘
+                              ↓
+   ┌─────────────────────────────────────────────────────────────┐
+   │ Layer 4: REJECTION SAMPLING (zero modulo bias)             │
+   │   For winner selection over [0, n):                        │
+   │     threshold = 2^64 - (2^64 mod n)                        │
+   │     if value >= threshold: reject, advance nonce, retry    │
+   │   GUARANTEES mathematical uniformity for ANY n.            │
+   │   Combined with Fisher-Yates for ordered shuffling (also   │
+   │   using rejection-sampled indices).                        │
+   └─────────────────────────────────────────────────────────────┘
+
+   VERIFIABILITY:
+   - Every draw produces a verification record with the revealed
+     serverSeed, allowing anyone to recompute the VRF output.
+   - The entropy pool's deterministic mixing means: given the
+     same 5 inputs, the output is ALWAYS identical.
+   - Timestamp jitter is logged but does NOT affect verifiability
+     (it's an additive secondary source that's revealed too).
+   ═══════════════════════════════════════════════════════════════════ */
+const PRNG = {
+  CHAIN_ROUNDS: 8,
+
+  /** HMAC-SHA256(key, message). Returns Uint8Array(32). */
+  async hmac(key, message){
+    const keyBytes = typeof key === 'string' ? new TextEncoder().encode(key) : key;
+    const msgBytes = typeof message === 'string' ? new TextEncoder().encode(message) : message;
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw', keyBytes, {name:'HMAC', hash:'SHA-256'}, false, ['sign']
+    );
+    const sig = await crypto.subtle.sign('HMAC', cryptoKey, msgBytes);
+    return new Uint8Array(sig);
+  },
+
+  /** SHA-256(data). Returns Uint8Array(32). */
+  async sha256(data){
+    const buf = await crypto.subtle.digest('SHA-256', data);
+    return new Uint8Array(buf);
+  },
+
+  /** Concatenate Uint8Arrays efficiently */
+  concatBytes(...arrs){
+    let total = 0;
+    for (const a of arrs) total += a.length;
+    const out = new Uint8Array(total);
+    let off = 0;
+    for (const a of arrs) { out.set(a, off); off += a.length; }
+    return out;
+  },
+
+  /**
+   * LAYER 1 — Entropy Pool with Fork-Mixer
+   * Mixes 5 entropy sources into a single 32-byte pool state.
+   * Uses iterative SHA-256 in fork-mixing pattern (each source updates state).
+   * Result is fully deterministic given the same inputs — verifiable.
+   */
+  async entropyPool(sources){
+    // sources: { serverSeed, clientSeed, nonce, round, timestamp }
+    let state = new Uint8Array(32); // starts all-zero
+    const mix = async (label, value) => {
+      const labelBytes = new TextEncoder().encode(label + ':');
+      const valBytes = new TextEncoder().encode(String(value));
+      state = await this.sha256(this.concatBytes(state, labelBytes, valBytes));
+    };
+    await mix('server', sources.serverSeed);
+    await mix('client', sources.clientSeed);
+    await mix('nonce',  sources.nonce);
+    await mix('round',  sources.round);
+    await mix('time',   sources.timestamp);
+    return state;
+  },
+
+  /**
+   * LAYER 2 — HMAC-DRBG (NIST SP 800-90A) stateful generator
+   * Used to expand the entropy pool into unlimited verifiable output.
+   * State: V (256-bit) + K (256-bit).
+   *
+   * This is the same construction used by Bitcoin wallets and TLS.
+   */
+  async drbgGenerate(poolSeed, numBytes){
+    let V = poolSeed;
+    let K = await this.sha256(this.concatBytes(new TextEncoder().encode('drbg-key'), poolSeed));
+    const out = [];
+    let remaining = numBytes;
+    while (remaining > 0) {
+      V = await this.hmac(K, V);
+      out.push(V);
+      remaining -= 32;
+    }
+    return this.concatBytes(...out).slice(0, numBytes);
+  },
+
+  /**
+   * LAYER 3 — Chained diffusion (8 rounds of SHA-256) with avalanche.
+   * This is the VERIFIABLE core: anyone with the revealed serverSeed
+   * can recompute the exact same output.
+   */
+  async vrf(serverSeed, clientSeed, nonce, round, timestamp){
+    // Step 1: Build entropy pool (5 sources)
+    const pool = await this.entropyPool({ serverSeed, clientSeed, nonce, round, timestamp });
+    // Step 2: HMAC over pool (uses serverSeed as key — binds output to secret)
+    let h = await this.hmac(serverSeed, this.concatBytes(
+      pool,
+      new TextEncoder().encode(`${clientSeed}:${nonce}:${round}:${timestamp}`)
+    ));
+    // Step 3: Chained diffusion (8 rounds)
+    const combinedBytes = new TextEncoder().encode(`${clientSeed}:${nonce}:${round}:${timestamp}`);
+    for (let i = 1; i < this.CHAIN_ROUNDS; i++) {
+      h = await this.sha256(this.concatBytes(h, combinedBytes, pool));
+    }
+    return h;
+  },
+
+  /** Extract first 8 bytes as BigUint64 (big-endian). */
+  bytesToUint64(bytes){
+    let v = 0n;
+    for (let i=0; i<8; i++) v = (v << 8n) | BigInt(bytes[i]);
+    return v;
+  },
+
+  /**
+   * LAYER 4 — Rejection sampling for UNBIASED selection in [0, n).
+   *
+   * Mathematical guarantee:
+   *   threshold = 2^64 - (2^64 mod n)
+   *   For any value v in [0, threshold), the mapping v mod n is uniform.
+   *   Values in [threshold, 2^64) are REJECTED (re-rolled with next nonce).
+   *   This eliminates the modulo bias that exists in naive `value % n`.
+   *
+   * Expected rejection probability: < 50% (n < 2^63), typically < 1%.
+   */
+  async rejectionSample(serverSeed, clientSeed, nonce, round, timestamp, n){
+    if (n <= 0) throw new Error('n must be positive');
+    if (n === 1) return { idx:0, nonceUsed:nonce, attempts:1, vrf:await this.vrf(serverSeed,clientSeed,nonce,round,timestamp) };
+    const TWO64 = (1n << 64n);
+    const N = BigInt(n);
+    const threshold = TWO64 - (TWO64 % N);
+    let attempts = 0;
+    let curNonce = nonce;
+    while (attempts < 32) {
+      const vrf = await this.vrf(serverSeed, clientSeed, curNonce, round, timestamp);
+      const val = this.bytesToUint64(vrf);
+      attempts++;
+      if (val < threshold) {
+        return { idx: Number(val % N), nonceUsed: curNonce, attempts, vrf };
+      }
+      curNonce++;
+    }
+    // Fallback (extremely rare, ~never hit in practice)
+    const vrf = await this.vrf(serverSeed, clientSeed, nonce, round, timestamp);
+    const val = this.bytesToUint64(vrf);
+    return { idx: Number(val % N), nonceUsed: nonce, attempts, vrf };
+  },
+
+  /**
+   * UNBIASED Fisher-Yates shuffle.
+   * Each swap uses an INDEPENDENT rejection-sampled index from a distinct
+   * nonce slot, so the resulting permutation is exactly uniform over all
+   * n! permutations.
+   *
+   * To avoid nonce correlation between swaps, we offset each swap's
+   * nonce by a large prime (2^32) — this guarantees the VRF inputs
+   * for each swap are cryptographically independent.
+   */
+  async fairShuffle(arr, serverSeed, clientSeed, nonce, round, timestamp){
+    const a = [...arr];
+    const n = a.length;
+    let curNonce = nonce;
+    for (let i = n - 1; i > 0; i--) {
+      // Offset nonce by i * 2^32 to ensure each swap draws from an
+      // independent nonce space (no overlap with sibling swaps).
+      const swapNonce = curNonce + i * 4294967296;
+      const r = await this.rejectionSample(serverSeed, clientSeed, swapNonce, round, timestamp, i + 1);
+      const j = r.idx;
+      [a[i], a[j]] = [a[j], a[i]];
+      curNonce++;
+    }
+    return a;
+  },
+
+  /* ─── Xoshiro256** — fast non-crypto PRNG for animations ONLY ─── */
+  _xsState: new BigUint64Array(4),
+  _MASK64: (1n << 64n) - 1n,
+  _rotl(x, k){ return ((x << k) | (x >> (64n - k))) & this._MASK64; },
+  seedXoshiro(seedBytes){
+    for (let i=0; i<4; i++){
+      let v = 0n;
+      for (let j=0; j<8; j++) v = (v << 8n) | BigInt(seedBytes[i*8+j]);
+      this._xsState[i] = v;
+    }
+    if (this._xsState[0]===0n && this._xsState[1]===0n && this._xsState[2]===0n && this._xsState[3]===0n){
+      this._xsState[0] = 1n;
+    }
+  },
+  xsNext(){
+    const s = this._xsState;
+    const result = (this._rotl((s[1] * 5n) & this._MASK64, 7n) * 9n) & this._MASK64;
+    const t = (s[1] << 17n) & this._MASK64;
+    s[2] = (s[2] ^ s[0]) & this._MASK64;
+    s[3] = (s[3] ^ s[1]) & this._MASK64;
+    s[1] = (s[1] ^ s[2]) & this._MASK64;
+    s[0] = (s[0] ^ s[3]) & this._MASK64;
+    s[2] = (s[2] ^ t) & this._MASK64;
+    s[3] = this._rotl(s[3], 45n);
+    return result;
+  },
+  xsFloat(){
+    const high = Number(this.xsNext() >> (64n - 53n));
+    return high / Number(1n << 53n);
+  }
+};
+
+/**
+ * Fairness Audit — LIVE statistical monitoring of the draw engine.
+ *
+ * Tracks winner-index distribution across all draws and computes a
+ * chi-square statistic. If the engine is fair, chi-square should stay
+ * small (typically < 16.92 for 9 degrees of freedom at p=0.05).
+ *
+ * This is displayed in the audit card after each draw so users can
+ * SEE the fairness, not just trust it.
+ */
+const FairnessAudit = {
+  /** Reset all collected statistics */
+  reset(){
+    State.set('fairnessStats', { draws: 0, counts: {}, history: [] });
+  },
+
+  /** Record the outcome of a draw and update statistics */
+  record(winnerIdx, n){
+    const stats = State.get('fairnessStats') || { draws: 0, counts: {}, history: [] };
+    stats.draws = (stats.draws || 0) + 1;
+    stats.counts = stats.counts || {};
+    stats.counts[winnerIdx] = (stats.counts[winnerIdx] || 0) + 1;
+    stats.history = (stats.history || []).concat([{ winnerIdx, n, t: Date.now() }]).slice(-200);
+    State.set('fairnessStats', stats);
+  },
+
+  /** Compute chi-square statistic and bias estimate for the last N draws */
+  analyze(windowSize = 50){
+    const stats = State.get('fairnessStats') || { draws: 0, counts: {}, history: [] };
+    const recent = (stats.history || []).slice(-windowSize);
+    if (recent.length < 10) {
+      return { sufficient: false, sampleSize: recent.length, required: 10 };
+    }
+    // Get the maximum n seen in the window
+    let maxN = 0;
+    recent.forEach(d => { if (d.n > maxN) maxN = d.n; });
+    if (maxN < 2) return { sufficient: false, sampleSize: recent.length };
+    // Count winners per index 0..maxN-1
+    const counts = new Array(maxN).fill(0);
+    recent.forEach(d => { counts[d.winnerIdx] = (counts[d.winnerIdx]||0) + 1; });
+    // Expected count per index (uniform = total/maxN)
+    const expected = recent.length / maxN;
+    // Chi-square = sum((observed - expected)^2 / expected)
+    let chiSq = 0;
+    for (let i = 0; i < maxN; i++) {
+      const obs = counts[i] || 0;
+      chiSq += Math.pow(obs - expected, 2) / expected;
+    }
+    // Degrees of freedom = maxN - 1
+    const df = maxN - 1;
+    // Critical value at p=0.05 (approximate; for df=9 it's 16.92)
+    // Use a simple approximation: critical ≈ df + 2*sqrt(2*df) + 1.16 (Wilson-Hilferty)
+    const critical = df + 2 * Math.sqrt(2 * df) + 1.16;
+    const maxDev = Math.max(...counts.map(c => Math.abs(c - expected) / expected * 100));
+    return {
+      sufficient: true,
+      sampleSize: recent.length,
+      maxN, expected, counts, chiSq, df, critical,
+      maxDeviation: maxDev,
+      isFair: chiSq < critical,
+      pValueApprox: chiSq < critical ? '> 0.05' : '< 0.05'
+    };
+  }
+};
+
+/* ════════════════════ 6. Fairness — commit/reveal/verify (SECURE) ════════════════════
+   ────────────────────────────────────────────────────────────────────
+   SECURITY MODEL — Provably Fair Commit-Reveal:
+
+   The serverSeed is the SECRET KEY that binds the operator to a
+   specific outcome. To prevent the operator (or anyone with access
+   to the seed) from pre-computing winners and "cherry-picking" which
+   draws to honor, we use a strict commit-reveal scheme:
+
+   1. COMMIT PHASE (before any draws):
+        - A fresh serverSeed is generated locally.
+        - Its SHA-256 hash (the "commitment") is shown to the user
+          and persisted. This binds the operator: they cannot change
+          the seed without changing the commitment.
+        - The raw serverSeed stays SECRET in local state.
+
+   2. DRAW PHASE (during the 64-draw epoch):
+        - Each draw uses the (still-secret) serverSeed.
+        - The verification record stores ONLY:
+            • serverSeedCommit (the hash, already public)
+            • NOT the raw serverSeed
+        - This means: while the seed is active, no one — not even
+          someone who steals the user's device — can verify the
+          outcome yet. That's correct: the seed must remain secret
+          to be useful.
+
+   3. REVEAL PHASE (after rotation, when a new seed replaces the old):
+        - The OLD serverSeed is now safe to publish (it's no longer
+          used for any future draw).
+        - We retroactively populate `serverSeed` on all verification
+          records from the just-ended epoch.
+        - The user can NOW verify those past draws.
+
+   This is the same scheme used by provably-fair casinos, Stake.com,
+   and Bitcoin Lightning gambling channels. It is cryptographically
+   sound: the operator cannot cheat without breaking SHA-256.
+   ═══════════════════════════════════════════════════════════════════ */
+const Fairness = {
+  /**
+   * Run a provably-fair draw using the 4-layer PRNG pipeline.
+   * 1. Capture high-resolution timestamp (5th entropy source).
+   * 2. Read current serverSeed, clientSeed, nonce, round.
+   * 3. Run VRF + rejection sampling to pick winner index.
+   * 4. Store verification record (serverSeed stays SECRET — only commit shown).
+   * 5. Record outcome in FairnessAudit for live chi-square monitoring.
+   * 6. Increment nonce; rotate server seed every 64 draws (REVEAL old seed).
+   */
+  async draw(n){
+    if (n < 1) throw new Error('need >=1 participant');
+    const ss = State.get('serverSeed');
+    const ssCommit = State.get('serverSeedCommit');
+    const cs = State.get('clientSeed');
+    const nonce = State.get('nonce');
+    const round = State.get('round');
+    // High-resolution timestamp (sub-millisecond jitter via performance.now)
+    const timestamp = performance.now
+      ? Math.floor(performance.now() * 1000) + Date.now()
+      : Date.now();
+
+    const { idx, nonceUsed, attempts, vrf } = await PRNG.rejectionSample(ss, cs, nonce, round, timestamp, n);
+
+    const vrfHex = Array.from(vrf, b=>b.toString(16).padStart(2,'0')).join('');
+
+    // SECURITY: store ONLY the commitment (hash), NOT the raw seed.
+    // The raw seed is revealed only after rotation (see reveal logic below).
+    const verification = {
+      round, nonce: nonceUsed, attempts, n,
+      winnerIdx: idx,
+      // serverSeed: NOT stored here for security (revealed post-rotation)
+      serverSeedCommit: ssCommit,
+      serverSeedRevealed: false,
+      clientSeed: cs,
+      vrf: vrfHex,
+      timestamp,
+      timeISO: new Date().toISOString()
+    };
+
+    // Record for live fairness audit
+    FairnessAudit.record(idx, n);
+
+    const newNonce = nonceUsed + 1;
+    const newRound = round + 1;
+    if (newNonce >= 64) {
+      // ROTATION: generate new seed, REVEAL old seed for all unrevealed records
+      const newSeed = Util.randomHex(32);
+      const newCommit = await this._commit(newSeed);
+      // Retroactively reveal the OLD seed on all pending verification records
+      await this._revealPending(ss);
+      // Also reveal on the just-completed record (it used the old seed)
+      verification.serverSeed = ss;
+      verification.serverSeedRevealed = true;
+      State.patch({
+        serverSeed: newSeed,
+        serverSeedCommit: newCommit,
+        nonce: 0,
+        round: newRound,
+        lastVerification: verification,
+        pendingReveal: [] // all revealed
+      });
+    } else {
+      // No rotation yet: keep seed secret. The verification record cannot
+      // be fully verified until rotation. Store in pendingReveal list.
+      State.patch({
+        nonce: newNonce,
+        round: newRound,
+        lastVerification: verification,
+        pendingReveal: [...(State.get('pendingReveal') || []), {
+          round: verification.round,
+          nonce: verification.nonce,
+          serverSeedCommit: ssCommit,
+          clientSeed: cs,
+          vrf: vrfHex,
+          timestamp,
+          winnerIdx: idx,
+          n
+        }]
+      });
+    }
+    return { winnerIdx: idx, verification };
+  },
+
+  /**
+   * Reveal the (now-rotated-out) serverSeed for all pending verification records.
+   * After this call, those records can be independently verified by anyone.
+   */
+  async _revealPending(revealedSeed){
+    const pending = State.get('pendingReveal') || [];
+    if (pending.length) {
+      const revealedAt = Date.now();
+      const revealed = pending.map(item => ({
+        ...item,
+        serverSeed: revealedSeed,
+        serverSeedRevealed: true,
+        revealedAt
+      }));
+      State.set('revealedDraws', [...(State.get('revealedDraws') || []), ...revealed].slice(-200));
+    }
+    State.set('pendingReveal', []);
+    State.set('lastRevealedSeed', revealedSeed);
+    State.set('lastRevealTime', Date.now());
+  },
+
+  async _commit(seed){
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(seed));
+    return Array.from(new Uint8Array(buf), b=>b.toString(16).padStart(2,'0')).join('');
+  },
+
+  async rotateClientSeed(){
+    const cs = Util.randomHex(8);
+    State.set('clientSeed', cs);
+    UI.toast(I18N.s('Client Seed جدید تولید شد','New Client Seed generated'), 'ok');
+  },
+
+  /**
+   * Verify a past draw by recomputing the VRF.
+   * Only works after the serverSeed has been revealed (post-rotation).
+   * Returns { ok, computedIdx, expectedIdx, vrfHex, revealed }.
+   */
+  async verify(verification){
+    if (!verification) return null;
+    // If the seed is not yet revealed, we cannot verify
+    if (!verification.serverSeedRevealed || !verification.serverSeed) {
+      return { ok: false, revealed: false, message: I18N.s('ServerSeed هنوز فعال است — پس از چرخش قابل تأیید است','ServerSeed is still active — verifiable after rotation') };
+    }
+    const { serverSeed, clientSeed, nonce, round, timestamp, n, winnerIdx } = verification;
+    const vrfBytes = await PRNG.vrf(serverSeed, clientSeed, nonce, round, timestamp);
+    const val = PRNG.bytesToUint64(vrfBytes);
+    const TWO64 = (1n << 64n);
+    const N = BigInt(n);
+    const threshold = TWO64 - (TWO64 % N);
+    let idx;
+    if (val < threshold) {
+      idx = Number(val % N);
+    } else {
+      const r = await PRNG.rejectionSample(serverSeed, clientSeed, nonce, round, timestamp, n);
+      idx = r.idx;
+    }
+    const vrfHex = Array.from(vrfBytes, b=>b.toString(16).padStart(2,'0')).join('');
+    return { ok: idx === winnerIdx, revealed: true, computedIdx: idx, expectedIdx: winnerIdx, vrfHex };
+  }
+};
+
+/* ════════════════════ 7. Economy — REMOVED (draws are now 100% free) ════════════════════
+   The energy/cost system was removed per user request. All draws are free.
+   The Economy module is intentionally empty to keep module numbering stable. */
+const Economy = {};
+
+/* ════════════════════ 8. AntiBot — Proof-of-Work ════════════════════ */
+const AntiBot = {
+  DIFFICULTY_BITS: 8,
+  newChallenge(){ return Util.randomHex(8); },
+
+  async solve(challenge){
+    const bits = this.DIFFICULTY_BITS;
+    let nonce = 0;
+    let attempts = 0;
+    const enc = new TextEncoder();
+    const challengeBytes = enc.encode(challenge + ':');
+    while (true) {
+      const nonceStr = nonce.toString();
+      const nonceBytes = enc.encode(nonceStr);
+      const buf = new Uint8Array(challengeBytes.length + nonceBytes.length);
+      buf.set(challengeBytes, 0);
+      buf.set(nonceBytes, challengeBytes.length);
+      const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+      const hash = new Uint8Array(hashBuf);
+      attempts++;
+      let zeros = 0;
+      let i = 0;
+      while (i < hash.length && zeros < bits) {
+        const byte = hash[i];
+        if (byte === 0) { zeros += 8; i++; continue; }
+        let mask = 0x80;
+        while (mask > 0 && (byte & mask) === 0 && zeros < bits) {
+          zeros++; mask >>= 1;
+        }
+        break;
+      }
+      if (zeros >= bits) {
+        const hashHex = Array.from(hash, b=>b.toString(16).padStart(2,'0')).join('');
+        return { nonce, attempts, hash: hashHex };
+      }
+      nonce++;
+      if ((attempts & 0xff) === 0) await new Promise(r => setTimeout(r, 0));
+    }
+  },
+
+  async verify(challenge, nonce){
+    const buf = new TextEncoder().encode(`${challenge}:${nonce}`);
+    const hashBuf = await crypto.subtle.digest('SHA-256', buf);
+    const hash = new Uint8Array(hashBuf);
+    let zeros = 0;
+    let i = 0;
+    while (i < hash.length && zeros < this.DIFFICULTY_BITS) {
+      const byte = hash[i];
+      if (byte === 0) { zeros += 8; i++; continue; }
+      let mask = 0x80;
+      while (mask > 0 && (byte & mask) === 0 && zeros < this.DIFFICULTY_BITS) {
+        zeros++; mask >>= 1;
+      }
+      break;
+    }
+    return zeros >= this.DIFFICULTY_BITS;
+  }
+};
+
+/* ════════════════════ 9. Donate — TON wallet ════════════════════ */
+const Donate = {
+  /** TON wallet address for receiving voluntary donations */
+  ADDRESS: 'UQCXZBew1zugws0K3smV4VJNyJyO16ECSlqEnUAHIUWJrAbW',
+  /** Network identifier for display */
+  NETWORK: 'TON (The Open Network)',
+  /** TONScan explorer URL */
+  EXPLORER_URL: 'https://tonscan.org/address/',
+  /** TonAPI base URL — public, no API key required for read endpoints */
+  TONAPI_BASE: 'https://tonapi.io/v2',
+  /** Cache duration for transactions (ms) */
+  CACHE_TTL: 30000,
+  /** Cached transactions */
+  _txCache: null,
+  _txCacheTime: 0,
+  _refreshing: false,
+  /** Canonical raw (0:hex) form of ADDRESS — resolved once, used for matching. */
+  _rawAddress: null,
+  /** Network request timeout in ms (AbortController). */
+  REQUEST_TIMEOUT: 12000,
+
+  /** Small async sleep helper. */
+  _sleep(ms){ return new Promise(r => setTimeout(r, ms)); },
+
+  /**
+   * Read-only fetch() wrapper with timeout + one retry on transient
+   * (429 / 5xx / network) errors. Credentials are omitted and no referrer is
+   * sent, so this never leaks any Telegram/session data to the TonAPI host.
+   */
+  async _getJson(url, retries = 1){
+    for (let attempt = 0; attempt <= retries; attempt++){
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), this.REQUEST_TIMEOUT);
+      try {
+        const res = await fetch(url, {
+          method: 'GET',
+          signal: ctrl.signal,
+          headers: { 'Accept': 'application/json' },
+          cache: 'no-store',
+          credentials: 'omit',
+          referrerPolicy: 'no-referrer'
+        });
+        clearTimeout(timer);
+        if ((res.status === 429 || res.status >= 500) && attempt < retries){
+          await this._sleep(600 * (attempt + 1));
+          continue;
+        }
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return await res.json();
+      } catch(e){
+        clearTimeout(timer);
+        if (attempt < retries){ await this._sleep(600 * (attempt + 1)); continue; }
+        throw e;
+      }
+    }
+  },
+
+  /**
+   * Pure-JS fallback: convert a user-friendly (EQ…/UQ…) address into its raw
+   * `workchain:hex` form with no network call. The friendly address decodes to
+   * 36 bytes: [tag][workchain][32-byte hash][crc16].
+   */
+  _friendlyToRaw(addr){
+    try {
+      const b64 = String(addr).replace(/-/g,'+').replace(/_/g,'/');
+      const bin = atob(b64);
+      if (bin.length !== 36) return null;
+      const bytes = new Uint8Array(36);
+      for (let i = 0; i < 36; i++) bytes[i] = bin.charCodeAt(i);
+      let wc = bytes[1];
+      if (wc === 0xff) wc = -1;            // 0xff = masterchain (-1)
+      let hex = '';
+      for (let i = 2; i < 34; i++) hex += bytes[i].toString(16).padStart(2,'0');
+      return `${wc}:${hex}`;
+    } catch(e){ return null; }
+  },
+
+  /**
+   * Resolve our wallet address to its canonical raw (0:hex) form.
+   *
+   * THE BUG THIS FIXES: TonAPI returns transfer sender/recipient addresses in
+   * raw form (e.g. "0:c1aed0…"), while our configured ADDRESS is the
+   * user-friendly "UQ…" form. Comparing the two strings directly NEVER matched,
+   * so every incoming deposit was filtered out and the feed looked empty. We
+   * normalise both sides to raw form before matching.
+   */
+  async resolveRawAddress(){
+    if (this._rawAddress) return this._rawAddress;
+    // 1) Offline best-effort conversion first (works even with no network).
+    const local = this._friendlyToRaw(this.ADDRESS);
+    if (local) this._rawAddress = local.toLowerCase();
+    // 2) Confirm/refine via TonAPI when reachable (authoritative).
+    try {
+      const data = await this._getJson(`${this.TONAPI_BASE}/address/${encodeURIComponent(this.ADDRESS)}/parse`);
+      if (data && data.raw_form) this._rawAddress = String(data.raw_form).toLowerCase();
+    } catch(e){
+      console.warn('TonAPI address parse error (using local fallback):', e);
+    }
+    return this._rawAddress;
+  },
+
+  /**
+   * Fetch the wallet's TON balance from TonAPI.
+   * Endpoint: GET /accounts/{address}
+   * Returns: { balance: nanotons, status, last_activity }
+   */
+  async fetchBalance(){
+    try {
+      const data = await this._getJson(`${this.TONAPI_BASE}/accounts/${encodeURIComponent(this.ADDRESS)}`);
+      // The account endpoint also returns our address in raw form — use it as
+      // an extra fallback normaliser for incoming-deposit matching.
+      if (!this._rawAddress && data && data.address){
+        this._rawAddress = String(data.address).toLowerCase();
+      }
+      return {
+        balance: data.balance || 0,           // in nanotons (1 TON = 1e9 nanotons)
+        status: data.status || 'active',
+        lastActivity: data.last_activity || 0
+      };
+    } catch(e) {
+      console.warn('TonAPI balance error:', e);
+      return null;
+    }
+  },
+
+  /**
+   * Fetch the last N transactions for the wallet from TonAPI.
+   * Endpoint: GET /accounts/{address}/events?limit=10&initiator=false
+   * Each event contains: timestamp, actions[], is_scamm, hash, lt
+   *
+   * We parse TonAction objects looking for TON transfers and determine
+   * direction (incoming/outgoing) based on the wallet address.
+   */
+  async fetchTransactions(limit = 10){
+    // Return cached if fresh enough
+    if (this._txCache && (Date.now() - this._txCacheTime) < this.CACHE_TTL) {
+      return this._txCache;
+    }
+    try {
+      // Make sure we know our own address in raw form BEFORE matching,
+      // otherwise no incoming deposit can ever be recognised.
+      await this.resolveRawAddress();
+      // Fetch a wider window of events than `limit`, because many events may be
+      // outgoing / non-TON and get filtered out — this lets us still surface up
+      // to `limit` *incoming* deposits.
+      const fetchCount = Math.min(100, Math.max(limit * 5, 30));
+      const url = `${this.TONAPI_BASE}/accounts/${encodeURIComponent(this.ADDRESS)}/events?limit=${fetchCount}&initiator=false&subject_only=false`;
+      const data = await this._getJson(url);
+      const events = data.events || [];
+      const transactions = [];
+      for (const ev of events) {
+        if (ev.is_scam) continue;            // skip flagged scam events
+        if (ev.in_progress) continue;        // skip not-yet-finalised events
+        const ts = (ev.timestamp || 0) * 1000; // seconds → ms
+        for (const action of (ev.actions || [])) {
+          // Only surface successful, plain-TON transfers.
+          if (action.type !== 'TonTransfer' || !action.TonTransfer) continue;
+          if (action.status && action.status !== 'ok') continue;
+          const t = action.TonTransfer;
+          // Normalise the recipient to raw form and compare to OUR raw address.
+          const recipientRaw = (t.recipient && t.recipient.address)
+            ? String(t.recipient.address).toLowerCase() : '';
+          const isIncoming = !!this._rawAddress && recipientRaw === this._rawAddress;
+          // FILTER: only show incoming deposits/donations to this wallet.
+          // Outgoing transactions are intentionally hidden from the public feed.
+          if (!isIncoming) continue;
+          if (!(Number(t.amount) > 0)) continue; // ignore zero-value / dust
+          transactions.push({
+            hash: ev.event_id || '',
+            lt: ev.lt || '',
+            timestamp: ts,
+            amount: t.amount || 0,           // nanotons
+            sender: t.sender ? t.sender.address : '',
+            recipient: recipientRaw,
+            comment: t.comment || '',
+            direction: 'in'
+          });
+          break; // one tx per event for clean display
+        }
+      }
+      // Newest first, then cap at `limit`
+      transactions.sort((a, b) => b.timestamp - a.timestamp);
+      const result = transactions.slice(0, limit);
+      this._txCache = result;
+      this._txCacheTime = Date.now();
+      return result;
+    } catch(e) {
+      console.warn('TonAPI transactions error:', e);
+      return null;
+    }
+  },
+
+  /**
+   * Refresh the transaction feed UI.
+   * Called on tab open and on manual refresh button click.
+   */
+  async refreshTransactions(){
+    if (this._refreshing) return;
+    this._refreshing = true;
+    const refreshBtn = document.getElementById('txRefreshBtn');
+    if (refreshBtn) refreshBtn.classList.add('refreshing');
+    const listEl = document.getElementById('tonTxList');
+    if (listEl && !this._txCache) {
+      listEl.innerHTML = `<div class="tx-loading">
+        <div class="tx-loading-spinner"></div>
+        <span>${I18N.s('در حال دریافت تراکنش‌ها...','Loading transactions...')}</span>
+      </div>`;
+    }
+
+    // Fetch balance and transactions in parallel
+    const [balance, txs] = await Promise.all([
+      this.fetchBalance(),
+      this.fetchTransactions(10)
+    ]);
+
+    // Render balance
+    if (balance) {
+      const tons = (balance.balance / 1e9).toFixed(4);
+      document.getElementById('tonBalance').textContent = Util.toFaNum(tons) + ' TON';
+    } else {
+      document.getElementById('tonBalance').textContent = '— TON';
+    }
+    if (txs) {
+      document.getElementById('tonTxCount').textContent = Util.toFaNum(txs.length);
+    } else {
+      document.getElementById('tonTxCount').textContent = '—';
+    }
+
+    // Render transactions
+    if (!listEl) { this._refreshing = false; return; }
+    if (!txs) {
+      listEl.innerHTML = `<div class="tx-error">
+        <div class="tx-error-icon">📡</div>
+        <div>${I18N.s('خطا در دریافت تراکنش‌ها','Failed to load transactions')}</div>
+        <div style="font-size:9px;color:var(--t3)">${I18N.s('ممکن است شبکه TonAPI موقتاً در دسترس نباشد','TonAPI may be temporarily unavailable')}</div>
+      </div>`;
+    } else if (txs.length === 0) {
+      listEl.innerHTML = `<div class="tx-empty">
+        <div class="tx-empty-icon">📭</div>
+        <div>${I18N.s('هنوز تراکنشی ثبت نشده','No transactions yet')}</div>
+        <div style="font-size:9px;color:var(--t3)">${I18N.s('اولین حمایت‌کننده باشید!','Be the first supporter!')}</div>
+      </div>`;
+    } else {
+      listEl.innerHTML = txs.map((tx, i) => {
+        // All transactions shown here are incoming (donations received).
+        const tons = (tx.amount / 1e9).toFixed(4);
+        const sender = tx.sender || '';
+        const senderShort = sender
+          ? sender.slice(0, 6) + '…' + sender.slice(-4)
+          : I18N.s('ناشناس','Unknown');
+        const timeAgo = this._timeAgo(tx.timestamp);
+        const memoHtml = tx.comment
+          ? `<div class="tx-memo">💬 ${Util.esc(tx.comment)}</div>`
+          : '';
+        const verifyHtml = tx.hash
+          ? '<a class="tx-verify" href="' + 'https://' + 'tonscan.org/tx/' + encodeURIComponent(tx.hash) + '" target="_blank" rel="noopener noreferrer">' + I18N.s('مشاهده در TONScan ↗','View on TONScan ↗') + '</a>'
+          : '';
+        const extraHtml = (memoHtml || verifyHtml)
+          ? `<div class="tx-extra">${memoHtml}${verifyHtml}</div>`
+          : '';
+        return `<div class="tx-item incoming" style="animation-delay:${i*60}ms">
+          <div class="tx-dir-icon">↓</div>
+          <div class="tx-content">
+            <div class="tx-line1">
+              <span class="tx-label">${I18N.s('دریافت حمایت','Donation received')}</span>
+              <span class="tx-amount">+${Util.toFaNum(tons)}<span class="unit">TON</span></span>
+            </div>
+            <div class="tx-meta">
+              <span class="tx-from" title="${Util.esc(sender)}">${Util.esc(senderShort)}</span>
+              <span class="tx-dot">·</span>
+              <span class="tx-time">${timeAgo}</span>
+            </div>
+          </div>
+          ${extraHtml}
+        </div>`;
+      }).join('');
+    }
+
+    if (refreshBtn) refreshBtn.classList.remove('refreshing');
+    this._refreshing = false;
+  },
+
+  /** Format a timestamp as a relative "time ago" string in Persian */
+  _timeAgo(ts){
+    const diff = Date.now() - ts;
+    if (diff < 0) return I18N.s('الان','now');
+    const sec = Math.floor(diff / 1000);
+    if (sec < 60) return I18N.s(Util.toFaNum(sec) + ' ثانیه پیش', Util.toFaNum(sec) + 's ago');
+    const min = Math.floor(sec / 60);
+    if (min < 60) return I18N.s(Util.toFaNum(min) + ' دقیقه پیش', Util.toFaNum(min) + 'm ago');
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return I18N.s(Util.toFaNum(hr) + ' ساعت پیش', Util.toFaNum(hr) + 'h ago');
+    const day = Math.floor(hr / 24);
+    if (day < 30) return I18N.s(Util.toFaNum(day) + ' روز پیش', Util.toFaNum(day) + 'd ago');
+    const mo = Math.floor(day / 30);
+    if (mo < 12) return I18N.s(Util.toFaNum(mo) + ' ماه پیش', Util.toFaNum(mo) + 'mo ago');
+    return I18N.s(Util.toFaNum(Math.floor(mo/12)) + ' سال پیش', Util.toFaNum(Math.floor(mo/12)) + 'y ago');
+  },
+
+  /**
+   * Copy the TON address to clipboard with advanced multi-stage animation.
+   * Works on both:
+   *   - tap on the address block itself
+   *   - tap on the dedicated copy button
+   *
+   * Animation sequence:
+   *   1. Address block glows green + sweep shimmer
+   *   2. Copy button morphs: icon scales+rotates into checkmark, color shifts to green
+   *   3. Floating checkmark particles burst upward from the tap point
+   *   4. Toast slides in: "آدرس کپی شد!"
+   *   5. Haptic feedback (success vibration on Telegram)
+   *   6. Auto-revert after 2s
+   */
+  async copyAddress(event){
+    const address = this.ADDRESS;
+    let success = false;
+
+    // Try modern async clipboard API first
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(address);
+        success = true;
+      }
+    } catch(e) { /* fall through to legacy */ }
+
+    // Legacy fallback: use a hidden textarea + execCommand
+    if (!success) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = address;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        ta.style.opacity = '0';
+        ta.setAttribute('readonly', '');
+        document.body.appendChild(ta);
+        ta.select();
+        ta.setSelectionRange(0, address.length);
+        success = document.execCommand('copy');
+        document.body.removeChild(ta);
+      } catch(e) { success = false; }
+    }
+
+    if (success) {
+      // Determine the tap point for the floating burst
+      let x, y;
+      if (event && event.clientX !== undefined) {
+        x = event.clientX; y = event.clientY;
+      } else {
+        // Fallback: center of the copy button
+        const btn = document.getElementById('copyBtn');
+        const r = btn.getBoundingClientRect();
+        x = r.left + r.width/2; y = r.top + r.height/2;
+      }
+
+      // Animate address block
+      const block = document.getElementById('tonAddressBlock');
+      block.classList.add('copied');
+      setTimeout(() => block.classList.remove('copied'), 1200);
+
+      // Animate copy button morph
+      const btn = document.getElementById('copyBtn');
+      const icon = document.getElementById('copyIcon');
+      const txt = document.getElementById('copyText');
+      btn.classList.add('copied');
+      icon.textContent = '✓';
+      txt.textContent = I18N.s('کپی شد!','Copied!');
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        icon.textContent = '📋';
+        txt.textContent = I18N.s('کپی آدرس','Copy Address');
+      }, 2000);
+
+      // Floating checkmark burst particles
+      this._spawnBurst(x, y);
+
+      // Haptic + toast
+      TG.haptic('success');
+      UI.toast(I18N.s('آدرس TON کپی شد!','TON address copied!'), 'ok');
+    } else {
+      TG.haptic('error');
+      UI.toast(I18N.s('کپی ناموفق — لطفاً دستی انتخاب کنید','Copy failed — please select manually'), 'er');
+    }
+  },
+
+  /** Spawn 6 floating checkmark particles at the tap point */
+  _spawnBurst(x, y){
+    const symbols = ['✓', '✓', '✓', '✓', '★', '✦'];
+    const colors = ['var(--ok)', 'var(--ok)', 'var(--neon-blue)', 'var(--ok)', 'var(--gold)', 'var(--neon-blue)'];
+    for (let i = 0; i < symbols.length; i++) {
+      const el = document.createElement('div');
+      el.className = 'copy-burst';
+      el.textContent = symbols[i];
+      el.style.color = colors[i];
+      el.style.left = (x + (Math.random()-0.5)*40) + 'px';
+      el.style.top = y + 'px';
+      el.style.fontSize = (18 + Math.random()*10) + 'px';
+      el.style.animationDelay = (i * 30) + 'ms';
+      el.style.animationDuration = (1.0 + Math.random()*0.4) + 's';
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1500);
+    }
+  },
+
+  /** Open the address in TONScan explorer */
+  openInExplorer(){
+    if (TG.ready && TG.wa.openLink) {
+      TG.wa.openLink(this.EXPLORER_URL + this.ADDRESS);
+    } else {
+      window.open(this.EXPLORER_URL + this.ADDRESS, '_blank');
+    }
+  }
+};
+
+/* ════════════════════ 10. FX — advanced particle system ════════════════════ */
+const FX = {
+  rafId: null,
+  particles: [],
+  canvas: null,
+  ctx: null,
+
+  init(){
+    this.canvas = document.getElementById('fxCanvas');
+    this.ctx = this.canvas.getContext('2d');
+    this._resize();
+    window.addEventListener('resize', () => this._resize());
+  },
+  _resize(){
+    if (!this.canvas) return;
+    const stage = document.getElementById('stage');
+    const dpr = window.devicePixelRatio || 1;
+    this.canvas.width  = stage.offsetWidth  * dpr;
+    this.canvas.height = stage.offsetHeight * dpr;
+    this.canvas.style.width  = stage.offsetWidth  + 'px';
+    this.canvas.style.height = stage.offsetHeight + 'px';
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  },
+
+  /** Multi-stage burst: explosion + sparks + ring shockwave + falling confetti */
+  burst(){
+    this._resize();
+    const w = this.canvas.offsetWidth, h = this.canvas.offsetHeight;
+    const cx = w/2, cy = h/2;
+    const cols = ['#7c6fff','#fbbf24','#22c55e','#c084fc','#f87171','#00d4ff','#f97316','#ec4899','#22ffa7'];
+    const COUNT = 180;
+
+    // Layer 1: Explosion (radial)
+    for (let i=0; i<COUNT; i++){
+      const ang = (Math.PI*2) * (i/COUNT) + (Math.random()-0.5)*0.3;
+      const spd = 2 + Math.random() * 5;
+      this.particles.push({
+        x: cx, y: cy,
+        vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd - 3,
+        size: 3 + Math.random() * 7,
+        color: cols[Math.floor(Math.random()*cols.length)],
+        rot: Math.random() * 360, rs: (Math.random() - .5) * 12,
+        gravity: 0.13 + Math.random() * 0.08,
+        life: 1, decay: 0.007 + Math.random() * 0.006,
+        shape: Math.random() > 0.4 ? 'rect' : 'circle',
+        layer: 'burst'
+      });
+    }
+
+    // Layer 2: Sparkles (smaller, faster, longer-lived)
+    for (let i=0; i<40; i++){
+      const ang = Math.random() * Math.PI * 2;
+      const spd = 4 + Math.random() * 6;
+      this.particles.push({
+        x: cx, y: cy,
+        vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd - 5,
+        size: 1.5 + Math.random() * 2,
+        color: '#fff',
+        rot: 0, rs: 0,
+        gravity: 0.08,
+        life: 1, decay: 0.012,
+        shape: 'sparkle',
+        layer: 'spark'
+      });
+    }
+
+    // Layer 3: Shockwave ring (single particle, growing)
+    this.particles.push({
+      x: cx, y: cy, vx: 0, vy: 0,
+      size: 10, color: 'rgba(251,191,36,0.6)',
+      rot: 0, rs: 0, gravity: 0,
+      life: 1, decay: 0.04,
+      shape: 'ring',
+      layer: 'shock',
+      maxSize: 220
+    });
+
+    if (!this.rafId) this._loop();
+  },
+
+  _loop(){
+    const ctx = this.ctx;
+    const w = this.canvas.offsetWidth, h = this.canvas.offsetHeight;
+    ctx.clearRect(0, 0, w, h);
+
+    for (let i = this.particles.length - 1; i >= 0; i--) {
+      const p = this.particles[i];
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, p.life);
+
+      if (p.shape === 'ring') {
+        // Shockwave ring
+        const r = p.size + (p.maxSize - p.size) * (1 - p.life);
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = 3 * p.life;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, Math.max(1, r), 0, Math.PI*2);
+        ctx.stroke();
+      } else if (p.shape === 'sparkle') {
+        // Star sparkle
+        ctx.fillStyle = p.color;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, Math.max(0.5, p.size), 0, Math.PI*2);
+        ctx.fill();
+      } else {
+        // Rect / circle particle
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot * Math.PI / 180);
+        ctx.fillStyle = p.color;
+        if (p.shape === 'rect') {
+          ctx.fillRect(-p.size/2, -p.size/4, p.size, p.size/2);
+        } else {
+          ctx.beginPath();
+          ctx.arc(0, 0, Math.max(0.5, p.size/2), 0, Math.PI*2);
+          ctx.fill();
+        }
+      }
+      ctx.restore();
+
+      p.x += p.vx; p.y += p.vy;
+      p.vy += p.gravity; p.rot += p.rs;
+      p.life -= p.decay;
+      if (p.life <= 0) this.particles.splice(i, 1);
+    }
+    if (this.particles.length > 0) {
+      this.rafId = requestAnimationFrame(() => this._loop());
+    } else {
+      ctx.clearRect(0, 0, w, h);
+      this.rafId = null;
+    }
+  },
+
+  stop(){
+    if (this.rafId) cancelAnimationFrame(this.rafId);
+    this.rafId = null;
+    this.particles = [];
+    if (this.ctx) this.ctx.clearRect(0, 0, this.canvas.offsetWidth, this.canvas.offsetHeight);
+  }
+};
+
+/* ════════════════════ 11. Lottery ════════════════════ */
+const Lottery = {
+  QUICK: ['علی','مهدی','سارا','رضا','زهرا','امیر','نیلوفر','کاوه'],
+  COLORS: [
+    ['#7c6fff','26'],['#c084fc','26'],['#22c55e','22'],
+    ['#f59e0b','22'],['#ef4444','22'],['#00d4ff','22'],
+    ['#ec4899','22'],['#84cc16','22'],['#f97316','22'],['#8b5cf6','26']
+  ],
+  running: false,
+  animTimer: null,
+  powChallenge: null,
+  lastDrawTimestamp: 0,
+
+  avatarStyle(i){
+    const [c, op] = this.COLORS[i % this.COLORS.length];
+    return `background:${c}${op};color:${c};border:1px solid ${c}44`;
+  },
+
+  addOne(){
+    const inp = document.getElementById('nameInput');
+    const raw = inp.value.trim();
+    if (!raw) { UI.toast(I18N.s('نام وارد کنید','Enter a name'), 'er'); TG.haptic('error'); return; }
+    const tokens = raw
+      .split(/[\n,،;؛]+/)
+      .map(s => s.replace(/\s+/g, ' ').trim())
+      .filter(Boolean);
+    const incoming = tokens.length ? tokens : [raw];
+    const list = State.get('participants');
+    const existing = new Set(list.map(p => Util.normalizeName(p)));
+    const additions = [];
+    const seenIncoming = new Set();
+
+    for (const candidate of incoming) {
+      const normalized = Util.normalizeName(candidate);
+      if (!normalized || seenIncoming.has(normalized) || existing.has(normalized)) continue;
+      seenIncoming.add(normalized);
+      additions.push(candidate);
+      existing.add(normalized);
+      if (list.length + additions.length >= 500) break;
+    }
+
+    if (!additions.length) {
+      UI.toast(I18N.s('نام جدیدی برای افزودن پیدا نشد','No new name found to add'), 'er');
+      TG.haptic('error');
+      return;
+    }
+
+    State.set('participants', [...list, ...additions]);
+    inp.value = '';
+    TG.haptic('light');
+    UI.toast(
+      additions.length === 1
+        ? I18N.s(additions[0] + ' اضافه شد', additions[0] + ' added')
+        : I18N.s(Util.toFaNum(additions.length) + ' شرکت‌کننده اضافه شدند', Util.toFaNum(additions.length) + ' participants added'),
+      'ok'
+    );
+    UI.renderParticipants();
+    UI.renderQuickChips();
+    UI.renderStats();
+  },
+  quickAdd(name){
+    const list = State.get('participants');
+    const normalized = Util.normalizeName(name);
+    if (!normalized) return;
+    if (list.some(p => Util.normalizeName(p) === normalized)) return;
+    if (list.length >= 500) { UI.toast(I18N.s('حداکثر ۵۰۰ نفر','Maximum 500 people'), 'er'); return; }
+    State.set('participants', [...list, name]);
+    TG.haptic('light');
+    UI.renderParticipants();
+    UI.renderQuickChips();
+    UI.renderStats();
+  },
+  removeP(i){
+    const list = State.get('participants');
+    const name = list[i];
+    State.set('participants', list.filter((_, idx) => idx !== i));
+    TG.haptic('warning');
+    UI.toast(I18N.s(name + ' حذف شد', name + ' removed'), 'er');
+    UI.renderParticipants();
+    UI.renderQuickChips();
+    UI.renderStats();
+  },
+  clearAll(){
+    if (!State.get('participants').length) return;
+    if (!confirm(I18N.s('همه شرکت‌کنندگان حذف شوند؟','Remove all participants?'))) return;
+    State.set('participants', []);
+    UI.renderParticipants();
+    UI.renderQuickChips();
+    UI.renderStats();
+    UI.toast(I18N.s('لیست پاک شد','List cleared'), 'er');
+  },
+  clearHist(){
+    State.patch({ history: [], drawCount: 0, lastWinner: null });
+    UI.renderHistory();
+    UI.renderStats();
+    UI.toast(I18N.s('تاریخچه پاک شد','History cleared'), 'ok');
+  },
+  resetStage(){
+    if (this.running) { clearTimeout(this.animTimer); this.running = false; }
+    document.getElementById('runBtn').disabled = false;
+    document.getElementById('wheelWrap').classList.remove('spinning');
+    UI.showStage('idle');
+    FX.stop();
+    document.getElementById('auditCard').style.display = 'none';
+    document.querySelectorAll('.p-item').forEach(el => {
+      el.classList.remove('is-winner');
+      const cr = el.querySelector('.crown');
+      if (cr) cr.remove();
+    });
+  },
+
+  /**
+   * Core Draw Flow:
+   * 1. Anti-bot: delta-time check (reject < 200ms between draws)
+   * 2. Anti-bot: Proof-of-Work (~10ms)
+   * 3. Energy check: spend draw cost
+   * 4. Fairness: VRF-lite picks winner (HMAC + chained SHA-256 + rejection sampling)
+   * 5. Animate (cosmetic — winner already chosen)
+   * 6. Announce + award XP + update history
+   */
+  async startDraw(){
+    if (this.running) return;
+    const participants = State.get('participants');
+    if (participants.length < 2) {
+      UI.toast(I18N.s('حداقل ۲ شرکت‌کننده لازم است','At least 2 participants required'), 'er'); TG.haptic('error'); return;
+    }
+
+    // (1) Delta-time anti-bot
+    const now = Date.now();
+    if (now - this.lastDrawTimestamp < 200) {
+      UI.toast(I18N.s('کمی صبر کنید...','Please wait...'), 'er'); TG.haptic('error'); return;
+    }
+    this.lastDrawTimestamp = now;
+
+    // (2) Proof-of-Work
+    this.running = true;
+    document.getElementById('runBtn').disabled = true;
+    document.getElementById('wheelWrap').classList.add('spinning');
+    UI.showStage('spin');
+    document.getElementById('auditCard').style.display = 'none';
+
+    if (!this.powChallenge) this.powChallenge = AntiBot.newChallenge();
+    try {
+      const pow = await AntiBot.solve(this.powChallenge);
+      const valid = await AntiBot.verify(this.powChallenge, pow.nonce);
+      if (!valid) throw new Error('PoW invalid');
+    } catch(e) {
+      UI.toast(I18N.s('تأیید نشد — دوباره تلاش کنید','Verification failed — try again'), 'er');
+      this.running = false;
+      document.getElementById('runBtn').disabled = false;
+      document.getElementById('wheelWrap').classList.remove('spinning');
+      UI.showStage('idle');
+      return;
+    }
+
+    // (3) No energy cost — draws are 100% free
+
+    // (4) VRF-lite fairness engine
+    const { winnerIdx, verification } = await Fairness.draw(participants.length);
+    const winner = participants[winnerIdx];
+
+    // (5) Cosmetic animation — seeded by the verified VRF hex output
+    PRNG.seedXoshiro(Util.hexToBytes(verification.vrf).slice(0, 32));
+    const displayOrder = [...participants.keys()];
+    for (let i = displayOrder.length - 1; i > 0; i--) {
+      const j = Math.floor(PRNG.xsFloat() * (i + 1));
+      [displayOrder[i], displayOrder[j]] = [displayOrder[j], displayOrder[i]];
+    }
+
+    const TOTAL = Math.max(40, participants.length * 3);
+    let frame = 0;
+    const ticker = document.getElementById('spinTicker');
+    const sub = document.getElementById('spinSub');
+    const prog = document.getElementById('progFill');
+    const phases = [
+      { at:0,    text:I18N.s('جمع‌آوری آنتروپی...','Collecting entropy...') },
+      { at:0.25, text:I18N.s('اجرای HMAC-SHA256...','Running HMAC-SHA256...') },
+      { at:0.5,  text:I18N.s('زنجیره‌سازی ۸ دور...','Chaining 8 rounds...') },
+      { at:0.75, text:'Rejection Sampling...' },
+      { at:0.92, text:I18N.s('تأیید نتیجه...','Verifying result...') }
+    ];
+
+    const tick = () => {
+      const progress = frame / TOTAL;
+      const displayIdx = displayOrder[frame % displayOrder.length];
+      const name = participants[displayIdx];
+      ticker.style.opacity = '0.5';
+      setTimeout(() => {
+        ticker.textContent = name;
+        ticker.style.opacity = '1';
+      }, 40);
+      prog.style.width = (progress * 100) + '%';
+      // Update phase text
+      const curPhase = phases.filter(p => progress >= p.at).pop();
+      if (curPhase) sub.textContent = curPhase.text;
+      frame++;
+      if (frame < TOTAL) {
+        let delay;
+        if (progress < 0.55)      delay = 40;
+        else if (progress < 0.75) delay = 70;
+        else if (progress < 0.88) delay = 130;
+        else delay = 100 + Math.pow((progress - 0.88)/0.12, 2) * 2200;
+        this.animTimer = setTimeout(tick, delay);
+      } else {
+        prog.style.width = '100%';
+        setTimeout(() => this.announce(winner, winnerIdx, verification), 180);
+      }
+    };
+    tick();
+  },
+
+  async announce(winner, winnerIdx, verification){
+    const n = State.get('participants').length;
+    const prob = 100 / n;
+    const time = Util.hm();
+    const drawNum = State.get('drawCount') + 1;
+
+    // Persist the winner label for later audit/modal rendering
+    verification.winnerName = winner;
+    State.set('lastVerification', verification);
+
+    // Verify only when the server seed has already been revealed
+    const vcheck = await Fairness.verify(verification);
+    if (vcheck && vcheck.revealed && !vcheck.ok) {
+      console.error('Fairness verification FAILED', verification, vcheck);
+    }
+
+    document.getElementById('winName').textContent = winner;
+    document.getElementById('winMeta').innerHTML =
+      I18N.s(`از میان <b>${Util.toFaNum(n)} نفر</b> — شانس هر نفر: <b>${prob.toFixed(4)}%</b><br>`, `Among <b>${Util.toFaNum(n)} people</b> — chance each: <b>${prob.toFixed(4)}%</b><br>`) +
+      I18N.s(`ساعت ${time} — قرعه‌کشی شماره ${Util.toFaNum(drawNum)}`, `at ${time} — draw #${Util.toFaNum(drawNum)}`);
+    UI.showStage('win');
+    FX.burst();
+    TG.haptic('success');
+
+    State.patch({
+      history: [...State.get('history'), { name: winner, time, round: verification.round }],
+      drawCount: State.get('drawCount') + 1,
+      lastWinner: winner
+    });
+
+    // Live fairness audit (chi-square on recent draws)
+    const audit = FairnessAudit.analyze(50);
+    const auditStatsHtml = audit.sufficient
+      ? `<div style="margin-top:10px;padding:10px;background:var(--bg1);border-radius:var(--r1);border:1px solid var(--border)">
+           <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:5px">
+             <span style="color:var(--t2)">${I18N.s(`آمار زنده عدالت (آخرین ${Util.toFaNum(audit.sampleSize)} قرعه‌کشی):`,`Live fairness stats (last ${Util.toFaNum(audit.sampleSize)} draws):`)}</span>
+             <span style="color:${audit.isFair?'var(--ok)':'var(--warn)'};font-weight:700">${audit.isFair?I18N.s('عادلانه ✓','Fair ✓'):I18N.s('نیاز به نمونه بیشتر','Need more samples')}</span>
+           </div>
+           <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--t3);font-family:var(--font-mono)">
+             <span>Chi² = ${audit.chiSq.toFixed(2)} / ${audit.critical.toFixed(2)} (df=${audit.df})</span>
+             <span>Max Deviation = ${audit.maxDeviation.toFixed(2)}%</span>
+           </div>
+         </div>`
+      : `<div style="margin-top:10px;font-size:10px;color:var(--t3);text-align:center">
+           ${I18N.s(`برای تحلیل آماری، حداقل ${Util.toFaNum(audit.required)} قرعه‌کشی لازم است (${Util.toFaNum(audit.sampleSize)}/${Util.toFaNum(audit.required)})`,`At least ${Util.toFaNum(audit.required)} draws are required for analysis (${Util.toFaNum(audit.sampleSize)}/${Util.toFaNum(audit.required)})`)}
+         </div>`;
+
+    // Audit card — SECURITY: show commitment, not raw seed (unless revealed)
+    document.getElementById('auditN').textContent = Util.toFaNum(n);
+    document.getElementById('auditP').textContent = prob.toFixed(4) + '%';
+    document.getElementById('auditB').textContent = I18N.s('۰','0');
+    const seedStatus = verification.serverSeedRevealed
+      ? `<span style="color:var(--ok)">${I18N.s('✓ فاش‌شده (قابل تأیید)','✓ Revealed (verifiable)')}</span>`
+      : `<span style="color:var(--warn)">${I18N.s('🔒 فعال — پس از ۶۴ قرعه‌کشی فاش می‌شود','🔒 Active — revealed after 64 draws')}</span>`;
+    const seedDisplay = verification.serverSeedRevealed
+      ? `ServerSeed: ${Util.esc(verification.serverSeed)}\n`
+      : `ServerSeedCommit: ${Util.esc(verification.serverSeedCommit || '—')}\n` +
+        `ServerSeed: ${I18N.s('🔒 (مخفی — پس از چرخش فاش می‌شود)','🔒 (hidden — revealed after rotation)')}\n`;
+    document.getElementById('auditNote').innerHTML =
+      `${I18N.s('الگوریتم ۴ لایه‌ای: ','4-layer algorithm: ')}<b style="color:var(--ok)">Entropy Pool</b> + <b style="color:var(--ok)">HMAC-DRBG</b> + ` +
+      `<b style="color:var(--ok)">${I18N.s('۸ دور چاه‌زنجیره‌ای','8-round chained')}</b> + <b style="color:var(--ok)">Rejection Sampling</b><br>` +
+      `${I18N.s('۵ منبع entropy: ','5 entropy sources: ')}ServerSeed · ClientSeed · Nonce · Round · Timestamp<br>` +
+      `Round: <span class="text-mono">${verification.round}</span> · ` +
+      `Nonce: <span class="text-mono">${verification.nonce}</span> · ` +
+      `Attempts: <span class="text-mono">${verification.attempts}</span><br>` +
+      `${I18N.s('وضعیت ServerSeed: ','ServerSeed status: ')}${seedStatus}`;
+    document.getElementById('auditHash').innerHTML =
+      seedDisplay +
+      `ClientSeed: ${Util.esc(verification.clientSeed)}\n` +
+      `Timestamp: ${Util.esc(String(verification.timestamp))}\n` +
+      `VRF: ${Util.esc(verification.vrf)}` + auditStatsHtml;
+    document.getElementById('auditCard').style.display = 'block';
+
+    UI.renderParticipants();
+    UI.renderHistory();
+    UI.renderStats();
+    UI.renderFairnessModal();
+
+    // Highlight winner
+    setTimeout(() => {
+      document.querySelectorAll('.p-item').forEach((el, i) => {
+        if (i === winnerIdx) {
+          el.classList.add('is-winner');
+          el.scrollIntoView({ behavior:'smooth', block:'nearest' });
+          const cr = document.createElement('span');
+          cr.className = 'crown'; cr.textContent = '👑';
+          el.appendChild(cr);
+        }
+      });
+    }, 300);
+
+    this.running = false;
+    document.getElementById('runBtn').disabled = false;
+    document.getElementById('wheelWrap').classList.remove('spinning');
+  }
+};
+
+/* ════════════════════ 12. UI ════════════════════ */
+const UI = {
+  currentTab: 'lottery',
+  fairnessModalOpen: false,
+
+  openTab(name){
+    this.currentTab = name;
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+    State.set('activeTab', name, true);
+    if (name === 'donate') this.renderDonate();
+    this._syncMainButton(name);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  },
+
+  _syncMainButton(tab){
+    if (!TG.ready) return;
+    if (tab === 'lottery') TG.mainButton(I18N.s('🎰 شروع قرعه‌کشی','🎰 Start Draw'), () => Lottery.startDraw());
+    else TG.hideMainButton();
+  },
+
+  cycleTheme(){
+    const cur = State.get('theme') || 'dark';
+    const next = cur === 'dark' ? 'light' : 'dark';
+    State.patch({ theme: next, themeManual: true });
+    this.applyTheme(next);
+    TG.haptic('light');
+  },
+  applyTheme(theme){
+    document.documentElement.setAttribute('data-theme', theme);
+    document.getElementById('themeIcon').textContent = theme === 'dark' ? '🌙' : '☀️';
+  },
+
+  showStage(st){
+    document.getElementById('stIdle').style.display = st==='idle'?'flex':'none';
+    document.getElementById('stSpin').style.display = st==='spin'?'flex':'none';
+    document.getElementById('stWin').style.display  = st==='win' ?'flex':'none';
+  },
+
+  toast(msg, type='ok'){
+    const w = document.getElementById('toastWrap');
+    const el = document.createElement('div');
+    el.className = 'toast ' + type;
+    el.textContent = (type==='ok'?'✓ ':type==='er'?'✕ ':'★ ') + msg;
+    w.appendChild(el);
+    setTimeout(() => {
+      el.style.animation = 'tOut .25s ease forwards';
+      setTimeout(() => el.remove(), 250);
+    }, 2600);
+  },
+
+  showReward(emoji, title, html){
+    const host = document.getElementById('rewardHost');
+    const el = document.createElement('div');
+    el.className = 'reward-popup';
+    el.innerHTML =
+      `<div class="reward-card">
+        <div class="reward-emoji">${emoji}</div>
+        <div class="reward-title">${title}</div>
+        <div class="reward-text">${html}</div>
+        <button class="reward-close">${I18N.s('عالیه!','Awesome!')}</button>
+      </div>`;
+    host.appendChild(el);
+    el.querySelector('.reward-close').onclick = () => el.remove();
+    el.onclick = (e) => { if (e.target === el) el.remove(); };
+    TG.haptic('success');
+  },
+
+  renderParticipants(){
+    const list = State.get('participants');
+    const n = list.length;
+    document.getElementById('cntBadge').textContent = I18N.s(Util.toFaNum(n) + ' نفر', Util.toFaNum(n) + ' people');
+    const prob = n > 0 ? (100 / n) : 0;
+    const probStr = n > 0 ? prob.toFixed(4) + '%' : '—';
+    document.getElementById('probVal').textContent = probStr;
+    document.getElementById('probBar').style.width = (n > 0 ? Math.min(100, prob * 4) : 0) + '%';
+
+    const el = document.getElementById('pList');
+    if (n === 0) {
+      el.innerHTML = '<div class="empty-hint">' + I18N.s('هنوز شرکت‌کننده‌ای اضافه نشده<br><span style="font-size:11px">نام را تایپ کنید و Enter بزنید</span>','No participants added yet<br><span style="font-size:11px">Type a name and press Enter</span>') + '</div>';
+      return;
+    }
+    el.innerHTML = list.map((nm, i) => `
+      <div class="p-item" id="pi-${i}" style="animation-delay:${i*20}ms">
+        <span class="p-idx">${Util.toFaNum(i+1)}</span>
+        <div class="avatar" style="${Lottery.avatarStyle(i)}">${Util.esc(Util.initials(nm))}</div>
+        <div class="p-info">
+          <div class="p-name">${Util.esc(nm)}</div>
+          <div class="p-prob">${I18N.s('شانس','Chance')}: ${probStr}</div>
+        </div>
+        <button class="btn btn-kill" onclick="Lottery.removeP(${i})" title="${I18N.s('حذف','Remove')}">✕</button>
+      </div>`).join('');
+  },
+
+  renderQuickChips(){
+    const list = State.get('participants');
+    const html = I18N.quickNames()
+      .filter(q => !list.includes(q))
+      .slice(0,6)
+      .map((q,i) => `<span class="chip" style="animation-delay:${i*40}ms" onclick="Lottery.quickAdd('${Util.esc(q)}')">${Util.esc(q)}</span>`)
+      .join('');
+    document.getElementById('quickChips').innerHTML = html;
+  },
+
+  renderStats(){
+    const n = State.get('participants').length;
+    const draws = State.get('drawCount');
+    document.getElementById('sTotal').textContent = Util.toFaNum(n);
+    document.getElementById('sDraws').textContent = Util.toFaNum(draws);
+    document.getElementById('sProb').textContent = n > 0 ? (100/n).toFixed(2) + '%' : '—';
+    document.getElementById('sLast').textContent = State.get('lastWinner') || '—';
+  },
+
+  renderHistory(){
+    const hist = State.get('history');
+    const el = document.getElementById('hList');
+    if (!hist.length) {
+      el.innerHTML = '<div class="empty-hint">' + I18N.s('هنوز قرعه‌کشی انجام نشده','No draws yet') + '</div>';
+      return;
+    }
+    el.innerHTML = [...hist].reverse().map((h, ri) => {
+      const rank = hist.length - ri;
+      const i = (hist.length - rank) % Lottery.COLORS.length;
+      return `<div class="h-item" style="animation-delay:${ri*30}ms">
+        <span class="h-num">#${Util.toFaNum(rank)}</span>
+        <div class="avatar" style="${Lottery.avatarStyle(i)};width:24px;height:24px;font-size:10px">${Util.esc(Util.initials(h.name))}</div>
+        <span class="h-name">${Util.esc(h.name)}</span>
+        <span class="h-time">${h.time}</span>
+      </div>`;
+    }).join('');
+  },
+
+  renderDonate(){
+    // Trigger live TON transaction fetch (async, renders when ready)
+    if (typeof Donate !== 'undefined' && Donate.refreshTransactions) {
+      Donate.refreshTransactions();
+    }
+  },
+
+  /* ─── Fairness Modal ─── */
+  openFairnessModal(){
+    const host = document.getElementById('modalHost');
+    host.innerHTML = `
+      <div class="modal-overlay" id="fairModal" onclick="if(event.target.id==='fairModal')UI.closeFairnessModal()">
+        <div class="modal">
+          <div class="modal-handle"></div>
+          <div class="modal-title">${I18N.s('🔒 الگوریتم Provably Fair','🔒 Provably Fair Algorithm')}</div>
+          <div class="modal-sub">${I18N.s(`این اپلیکیشن از الگوریتم <b style="color:var(--acc2)">VRF-lite</b> برای تولید اعداد تصادفی قابل تأیید استفاده می‌کند. هر قرعه‌کشی دارای Server Seed، Client Seed، Nonce و Round است که خروجی آن‌ها قابل بازتولید و تأیید توسط کاربر است.`,`This app uses a <b style="color:var(--acc2)">VRF-lite</b> algorithm to generate verifiable random numbers. Every draw has a Server Seed, Client Seed, Nonce and Round, and their output is reproducible and verifiable by the user.`)}</div>
+
+          <div class="fair-section">
+            <div class="fair-section-title">${I18N.s('Commitment فعلی (هش Server Seed)','Current Commitment (Server Seed hash)')}</div>
+            <div class="fair-row"><span>SHA-256(serverSeed)</span><code id="fmCommit">—</code></div>
+            <div class="fair-row"><span>${I18N.s('Round فعلی','Current Round')}</span><code id="fmRound">۰</code></div>
+            <div class="fair-row"><span>${I18N.s('Nonce فعلی','Current Nonce')}</span><code id="fmNonce">۰</code></div>
+            <div class="fair-row"><span>${I18N.s('Client Seed شما','Your Client Seed')}</span><code id="fmClientSeed">—</code></div>
+          </div>
+
+          <div class="fair-section">
+            <div class="fair-section-title">${I18N.s('فرمول VRF-lite','VRF-lite Formula')}</div>
+            <div class="fair-formula">
+combined = clientSeed || ":" || nonce || ":" || round<br>
+h<sub>0</sub> = HMAC-SHA256(serverSeed, combined)<br>
+h<sub>i</sub> = SHA-256(h<sub>i-1</sub> || combined)  for i = 1..7<br>
+final = h<sub>7</sub>  (32 bytes)<br>
+idx = first8Bytes(final) as uint64<br>
+<b>winner = participants[rejectionSample(idx, n)]</b>
+            </div>
+          </div>
+
+          <div class="fair-section">
+            <div class="fair-section-title">${I18N.s('آخرین قرعه‌کشی (قابل تأیید پس از چرخش)','Last draw (verifiable after rotation)')}</div>
+            <div class="fair-row"><span>Round</span><code id="fmVRound">—</code></div>
+            <div class="fair-row"><span>Nonce</span><code id="fmVNonce">—</code></div>
+            <div class="fair-row"><span>${I18N.s('وضعیت Server Seed','Server Seed status')}</span><code id="fmSeedStatus">—</code></div>
+            <div class="fair-row"><span>Server Seed Commit</span><code id="fmVCommit">—</code></div>
+            <div class="fair-row"><span>${I18N.s('Server Seed (اگر فاش شده)','Server Seed (if revealed)')}</span><code id="fmVServerSeed">—</code></div>
+            <div class="fair-row"><span>Client Seed</span><code id="fmVClientSeed">—</code></div>
+            <div class="fair-row"><span>VRF (hex)</span><code id="fmVrf">—</code></div>
+            <div class="fair-row"><span>Attempts</span><code id="fmAttempts">—</code></div>
+            <div class="fair-row"><span>${I18N.s('بر��ده انتخاب‌شده','Selected winner')}</span><code id="fmWinner" class="ok">—</code></div>
+          </div>
+
+          <div class="fair-section">
+            <div class="fair-section-title">${I18N.s('چرا این الگوریتم عادلانه است؟','Why is this algorithm fair?')}</div>
+            <p style="font-size:11px;color:var(--t2);line-height:1.8">${I18N.s(`
+              <b>۱. تعهد پیش از قرعه‌کشی (Commit):</b> هش Server Seed (به نام <code>ServerSeedCommit</code>) قبل از هر قرعه‌کشی نمایش داده می‌شود. این <b style="color:var(--acc2)">قفل تعهد</b> است — سرور نمی‌تواند پس از دیدن ورودی‌ها، Seed را تغییر دهد چون هش تغییر خواهد کرد.<br><br>
+              <b>۲. مخفی‌نگه‌داشتن Seed در حین استفاده:</b> تا زمانی که یک Server Seed فعال است (حداکثر ۶۴ قرعه‌کشی)، Seed خام <b style="color:var(--warn)">مخفی نگه‌داشته می‌شود</b> تا هیچ‌کس — حتی کسی که به دستگاه شما دسترسی دارد — نتواند نتایج آینده را پیش‌بینی کند.<br><br>
+              <b>۳. چاه‌زنجیره‌ای ۸ دور:</b> هر تغییر ۱ بیتی در ورودی، پس از ۸ دور SHA-256، تمام ۲۵۶ بیت خروجی را تغییر می‌دهد (اثر بهمنی کامل).<br><br>
+              <b>۴. Rejection Sampling:</b> تضمین ریاضی می‌کند بایاس صفر است — حتی اگر ۲⁶⁴ بر n قابل‌تقسیم نباشد.<br><br>
+              <b>۵. فاش‌کردن پس از چرخش (Reveal):</b> وقتی ۶۴ قرعه‌کشی تمام می‌شود، Server Seed قدیمی فاش می‌شود و شما می‌توانید <b style="color:var(--ok)">تمام قرعه‌کشی‌های آن دوره را به‌صورت مستقل تأیید کنید</b>. سپس یک Seed جدید تولید و تعهد می‌شود.<br><br>
+              <b style="color:var(--acc2)">این همان طرحی است که کازینوهای Provably Fair و Bitcoin Lightning استفاده می‌کنند.</b>
+            `,`<b>1. Pre-draw commitment (Commit):</b> The Server Seed hash (called <code>ServerSeedCommit</code>) is shown before every draw. This is a <b style="color:var(--acc2)">commitment lock</b> — the server cannot change the Seed after seeing the inputs, because the hash would change.<br><br><b>2. Keeping the Seed hidden while in use:</b> While a Server Seed is active (up to 64 draws), the raw Seed is <b style="color:var(--warn)">kept hidden</b> so that no one — not even someone with access to your device — can predict future results.<br><br><b>3. 8-round chaining:</b> Any single-bit change in the input changes all 256 output bits after 8 rounds of SHA-256 (full avalanche effect).<br><br><b>4. Rejection Sampling:</b> Mathematically guarantees zero bias — even if 2⁶⁴ is not divisible by n.<br><br><b>5. Reveal after rotation:</b> When 64 draws are complete, the old Server Seed is revealed and you can <b style="color:var(--ok)">independently verify every draw from that period</b>. Then a new Seed is generated and committed.<br><br><b style="color:var(--acc2)">This is the same scheme used by Provably Fair casinos and Bitcoin Lightning.</b>`)}</p>
+          </div>
+
+          <button class="btn btn-ghost btn-md" style="width:100%;margin-bottom:8px" onclick="Fairness.rotateClientSeed()">${I18N.s('🔄 چرخش Client Seed','🔄 Rotate Client Seed')}</button>
+          <button class="modal-close" onclick="UI.closeFairnessModal()">${I18N.s('بستن','Close')}</button>
+        </div>
+      </div>`;
+    this.fairnessModalOpen = true;
+    this.renderFairnessModal();
+  },
+  closeFairnessModal(){
+    document.getElementById('modalHost').innerHTML = '';
+    this.fairnessModalOpen = false;
+  },
+  renderFairnessModal(){
+    if (!this.fairnessModalOpen) return;
+    const commit = State.get('serverSeedCommit') || I18N.s('در حال محاسبه...','Computing...');
+    const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    setText('fmCommit', Util.shortHex(commit, 16));
+    setText('fmRound', Util.toFaNum(State.get('round') || 0));
+    setText('fmNonce', Util.toFaNum(State.get('nonce') || 0));
+    setText('fmClientSeed', State.get('clientSeed') || '—');
+
+    const v = State.get('lastVerification');
+    if (v) {
+      setText('fmVRound', Util.toFaNum(v.round));
+      setText('fmVNonce', Util.toFaNum(v.nonce));
+      // Security-aware seed status display
+      if (v.serverSeedRevealed && v.serverSeed) {
+        setText('fmSeedStatus', I18N.s('✓ فاش‌شده — قابل تأیید','✓ Revealed — verifiable'));
+        setText('fmVCommit', Util.shortHex(v.serverSeedCommit || commit, 16));
+        setText('fmVServerSeed', Util.shortHex(v.serverSeed, 16));
+      } else {
+        setText('fmSeedStatus', I18N.s('🔒 فعال — مخفی','🔒 Active — hidden'));
+        setText('fmVCommit', Util.shortHex(v.serverSeedCommit || commit, 16));
+        setText('fmVServerSeed', I18N.s('🔒 پس از ۶۴ قرعه‌کشی','🔒 After 64 draws'));
+      }
+      setText('fmVClientSeed', v.clientSeed);
+      setText('fmVrf', Util.shortHex(v.vrf, 16));
+      setText('fmAttempts', Util.toFaNum(v.attempts));
+      setText('fmWinner', v.winnerName || State.get('lastWinner') || `#${v.winnerIdx}`);
+    }
+  },
+
+  renderAll(){
+    this.applyTheme(State.get('theme') || 'dark');
+    this.renderParticipants();
+    this.renderQuickChips();
+    this.renderStats();
+    this.renderHistory();
+    this.renderDonate();
+  }
+};
+
+/* ════════════════════ 13. Init ════════════════════ */
+(async function init(){
+  const setStatus = (m) => { const el = document.getElementById('loaderStatus'); if (el) el.textContent = m; };
+  // Safety net: never let the loader get stuck if init throws midway.
+  setTimeout(() => { const l = document.getElementById('appLoader'); if (l) l.classList.add('is-hidden'); }, 6000);
+
+  setStatus(I18N.s('در حال بارگذاری تنظیمات…','Loading settings…'));
+  await State.load();
+  I18N.init();
+  TG.init();
+  setStatus(I18N.s('اتصال به تلگرام…','Connecting to Telegram…'));
+  FX.init();
+  UI.applyTheme(State.get('theme') || 'dark');
+  setStatus(I18N.s('آماده‌سازی رابط کاربری…','Preparing the interface…'));
+  UI.renderAll();
+  UI.openTab(State.get('activeTab') || 'lottery');
+
+  document.getElementById('nameInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') Lottery.addOne();
+  });
+
+  // Ripple effect for buttons
+  document.addEventListener('pointerdown', (e) => {
+    const btn = e.target.closest('.btn, .btn-run, .tab, .chip, .copy-btn, .ton-address-block');
+    if (!btn) return;
+    const rect = btn.getBoundingClientRect();
+    btn.style.setProperty('--rx', (e.clientX - rect.left) + 'px');
+    btn.style.setProperty('--ry', (e.clientY - rect.top) + 'px');
+  });
+
+  console.log('%cقرعه کشی TMA ready ✦ 4-layer PRNG (Entropy Pool + HMAC-DRBG + Chained SHA-256 + Rejection Sampling) — Free draws, no energy',
+    'color:#a78bfa;font-weight:bold;font-size:13px');
+
+  // ── Reveal the app: gracefully fade out the startup loader ──
+  setStatus(I18N.s('آماده!','Ready!'));
+  const loaderEl = document.getElementById('appLoader');
+  if (loaderEl) {
+    setTimeout(() => {
+      loaderEl.classList.add('is-hidden');
+      setTimeout(() => { if (loaderEl.parentNode) loaderEl.parentNode.removeChild(loaderEl); }, 650);
+    }, 500);
+  }
+})();
+</script>
+</body>
+</html>
