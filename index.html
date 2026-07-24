@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#0C0F14">
-<title>کاشی و زعفران — قرعه‌کشی منصفانه</title>
+<title>قرعه‌کشی منصفانه</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100..900&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
-/* ╔═══ کاشی و زعفران — Tile & Saffron design system ═══╗ */
+/* ╔═══ Design system ═══╗ */
 :root{
   --bg0:#0C0F14; --bg1:#111622; --bg2:#161D2C; --bg3:#1D2637;
   --line:rgba(122,150,190,.15); --line2:rgba(47,214,195,.25);
@@ -1246,18 +1246,17 @@ const TG = {
       } catch(e){ resolve('failed'); }
     });
   },
-  mainButton(text, onClick){
-    if (!this.ready || !this.wa.MainButton) return;
-    const mb = this.wa.MainButton;
-    mb.setText(text);
-    mb.onClick(onClick);
-    mb.show();
-    document.documentElement.style.setProperty('--tg-main-btn-height', '52px');
+  /* The native Telegram MainButton is intentionally DISABLED: it rendered a
+     default-blue bar pinned to the bottom of the mini app that duplicated the
+     in-page “Start Draw” button and broke the custom design system. */
+  mainButton(){
+    this.hideMainButton();
   },
   hideMainButton(){
-    if (!this.ready || !this.wa.MainButton) return;
-    this.wa.MainButton.hide();
     document.documentElement.style.setProperty('--tg-main-btn-height', '0px');
+    if (!this.ready || !this.wa.MainButton) return;
+    const mb = this.wa.MainButton;
+    try { if (mb.isVisible) mb.hide(); } catch(e){ try { mb.hide(); } catch(e2){} }
   },
   showAlert(msg){
     if (this.ready && this.wa.showAlert) this.wa.showAlert(msg);
@@ -3724,10 +3723,10 @@ const UI = {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   },
 
-  _syncMainButton(tab){
-    if (!TG.ready) return;
-    if (tab === 'lottery') TG.mainButton(I18N.s('شروع قرعه‌کشی','Start Draw'), () => Lottery.startDraw());
-    else TG.hideMainButton();
+  /* Always keep the native Telegram bottom button hidden — the in-page
+     gold/turquoise action button is the single source of truth. */
+  _syncMainButton(){
+    TG.hideMainButton();
   },
 
   cycleTheme(){
@@ -3996,6 +3995,7 @@ idx = first8Bytes(final) as uint64<br>
   await State.load();
   I18N.init();
   TG.init();
+  try { TG.hideMainButton(); } catch(e){}
   setStatus(I18N.s('اتصال به تلگرام…','Connecting to Telegram…'));
   FX.init();
   Wheel.init();
@@ -4042,7 +4042,7 @@ idx = first8Bytes(final) as uint64<br>
     btn.style.setProperty('--ry', (e.clientY - rect.top) + 'px');
   });
 
-  console.log('%c✦ کاشی و زعفران — Provably-Fair Lucky Draw v2 · deterministic VRF · dual TON providers (TonAPI + Toncenter)',
+  console.log('%c✦ Provably-Fair Lucky Draw v2 · deterministic VRF · dual TON providers (TonAPI + Toncenter)',
     'color:#F2B237;font-weight:bold;font-size:13px');
 
   // ── Reveal the app: gracefully fade out the startup loader ──
