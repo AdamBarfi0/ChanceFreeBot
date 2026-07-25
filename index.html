@@ -981,6 +981,8 @@ body::before{transform:translate3d(0,var(--tile-shift,0px),0);will-change:transf
 /* ════════════════════ 1. Util ════════════════════ */
 /* ═══ 0. CONFIG — deployment settings (fill these for full deep-link power) ═══ */
 const CONFIG = {
+  /** Build id — shown at bottom-left so you can verify which file is live. */
+  BUILD: 'B8-2607',
   MONTHLY_GOAL_TON: 50,
   /** Telegram bot username (without @) — enables t.me invite/share deep links. */
   BOT_USERNAME: '',
@@ -1198,6 +1200,7 @@ const TG = {
       if (this.wa.enableClosingConfirmation) this.wa.enableClosingConfirmation();
       this.applyThemeParams();
       this.wa.onEvent('themeChanged', () => this.applyThemeParams());
+      this._killMainButton();
     } catch(e){ console.warn('TG init failed', e); }
   },
   applyThemeParams(){
@@ -1209,12 +1212,12 @@ const TG = {
     if (p.hint_color)       root.style.setProperty('--tg-hint', p.hint_color);
     if (p.button_color)     root.style.setProperty('--tg-btn', p.button_color);
     if (p.button_text_color)root.style.setProperty('--tg-btn-text', p.button_text_color);
-    // Auto-pick theme from TG color luminance (only if user hasn't manually toggled)
-    if (p.bg_color && !State.get('themeManual')) {
-      const lum = this._luminance(p.bg_color);
-      const auto = lum < 0.5 ? 'dark' : 'light';
-      State.set('theme', auto, true);
-      UI.applyTheme(auto);
+    // The app ships with its own identity: “Turquoise Night” is ALWAYS the
+    // default theme. Telegram's own light/dark palette no longer overrides it —
+    // only the user's explicit theme button changes the theme.
+    if (!State.get('themeManual')) {
+      State.set('theme', 'dark', true);
+      try { UI.applyTheme('dark'); } catch(e){}
     }
   },
   _luminance(hex){
@@ -1252,11 +1255,30 @@ const TG = {
   mainButton(){
     this.hideMainButton();
   },
+  /** Keep Telegram's native bottom button permanently hidden. */
+  _killMainButton(){
+    this.hideMainButton();
+    const evts = ['viewportChanged', 'themeChanged', 'activated', 'mainButtonClicked'];
+    for (const ev of evts) {
+      try { this.wa.onEvent(ev, () => this.hideMainButton()); } catch(e){}
+    }
+    // Short watchdog for clients that restore the button a moment after start
+    let n = 0;
+    const iv = setInterval(() => { this.hideMainButton(); if (++n > 20) clearInterval(iv); }, 500);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) this.hideMainButton();
+    });
+  },
   hideMainButton(){
     document.documentElement.style.setProperty('--tg-main-btn-height', '0px');
     if (!this.ready || !this.wa.MainButton) return;
     const mb = this.wa.MainButton;
-    try { if (mb.isVisible) mb.hide(); } catch(e){ try { mb.hide(); } catch(e2){} }
+    try { mb.hide(); } catch(e){}
+    try { if (mb.offClick) mb.offClick(); } catch(e){}
+    try { if (mb.setParams) mb.setParams({ is_visible: false }); } catch(e){}
+    // Newer Bot API surfaces (secondary button / bottom bar) hidden as well
+    try { if (this.wa.SecondaryButton) this.wa.SecondaryButton.hide(); } catch(e){}
+    try { if (this.wa.BottomButton) this.wa.BottomButton.hide(); } catch(e){}
   },
   showAlert(msg){
     if (this.ready && this.wa.showAlert) this.wa.showAlert(msg);
@@ -3727,6 +3749,13 @@ const UI = {
      gold/turquoise action button is the single source of truth. */
   _syncMainButton(){
     TG.hideMainButton();
+  try{
+    var __bt=document.createElement('div');
+    __bt.id='buildTag';
+    __bt.textContent=CONFIG.BUILD;
+    __bt.style.cssText='position:fixed;left:6px;bottom:4px;z-index:99999;font:10px/1 ui-monospace,monospace;color:rgba(128,150,170,.45);pointer-events:none;letter-spacing:.5px';
+    document.body.appendChild(__bt);
+  }catch(e){}
   },
 
   cycleTheme(){
